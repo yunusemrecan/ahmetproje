@@ -104,7 +104,18 @@ def test_probe_rejects_non_python(tmp_path):
 
 def test_discover_includes_extra_interpreter():
     found = discovery.discover(uv=None, extra=[sys.executable])
+    # Aynı yorumlayıcı PATH'te başka adla da olabilir; elle eklenen yol gösterilmeli.
     assert any(same_path_key(i.executable) == same_path_key(sys.executable) for i in found)
+
+
+def test_merge_prefers_user_path_for_aliases(tmp_path):
+    real = str(tmp_path / "python3.13")
+    alias = str(tmp_path / "python3")
+    info = _install(real, "3.13.0", str(tmp_path))
+    probes = {same_path_key(alias): info, same_path_key(real): info}
+    [merged] = discovery.merge([Candidate(alias, "path"), Candidate(real, "user")], probes)
+    assert merged.executable == real
+    assert merged.sources == {"path", "user"}
 
 
 def test_from_path_finds_interpreters(tmp_path):

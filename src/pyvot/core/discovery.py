@@ -286,6 +286,9 @@ def merge(candidates: Iterable[Candidate], probes: dict[str, PythonInstall | Non
             )
             groups[key] = install
         install.sources.add(cand.source)
+        if cand.source == "user":
+            # Kullanıcının seçtiği yol, aynı kurulumun diğer adlarından önce gelir.
+            install.executable = cand.path
         install.is_default = install.is_default or cand.is_default
         if cand.company and not install.company:
             install.company = cand.company

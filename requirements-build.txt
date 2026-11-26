@@ -1,0 +1,4 @@
+# Windows derlemesi için araçlar (sürümleri sabit).
+pyinstaller==6.22.3
+# Uygulamayla birlikte dağıtılan uv
+uv==0.11.32

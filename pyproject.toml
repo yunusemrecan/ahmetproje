@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyvot"
+dynamic = ["version"]
+description = "Python sürümlerini, paketlerini ve projelerini yöneten Windows uygulaması"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "PySide6-Essentials>=6.7",
+    "packaging>=24",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.gui-scripts]
+pyvot = "pyvot.app:main"
+
+[tool.hatch.version]
+path = "src/pyvot/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pyvot"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "network: needs internet access (PyPI)",
+]

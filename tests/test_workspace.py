@@ -36,9 +36,10 @@ def _wait(qapp, condition, timeout_ms: int = 30000) -> None:
         qapp.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 50)
 
 
-def _evaluate(qapp, window, function: str, *args):
+def _editor_text(qapp, window, path: Path) -> str | None:
+    """Editördeki metin (uygulamanın kullandığı snapshot yoluyla)."""
     box: list = []
-    window.editor.evaluate(function, *args, callback=box.append)
+    window.editor.snapshot(path, lambda text, _version: box.append(text))
     _wait(qapp, lambda: box)
     return box[0]
 
@@ -101,7 +102,7 @@ def test_format_on_save_uses_vscode_setting(qapp, window, project):
 def test_external_change_reloads_clean_file(qapp, window, project):
     main = (project / "main.py").resolve()
     main.write_text("print('dışarıdan')\n", encoding="utf-8")
-    _wait(qapp, lambda: (_evaluate(qapp, window, "snapshot", main.as_uri()) or {}).get("text") == "print('dışarıdan')\n")
+    _wait(qapp, lambda: _editor_text(qapp, window, main) == "print('dışarıdan')\n")
     assert not window.tabs[str(main)].dirty
 
 
@@ -224,3 +225,33 @@ def test_notebook_html_renders_outputs(qapp):
     html = notebook_html(json.loads(json.dumps(notebook)), document)
     assert "Başlık" in html and "[3]" in html and "nbimage://" in html
     assert "ValueError: kötü" in html and "\x1b" not in html
+
+
+def test_late_results_after_window_closed_do_not_crash(qapp, project):
+    """Pencere kapandıktan sonra gelen Ruff sonuçları ve gecikmeli dosya kontrolleri sessizce yok sayılmalı."""
+    import shiboken6
+
+    from pyvot.core.settings import Settings
+    from pyvot.ui.context import AppContext
+
+    errors: list = []
+    previous = sys.excepthook
+    sys.excepthook = lambda *exc: errors.append(exc)
+    try:
+        ctx = AppContext(Settings())
+        win = ctx.open_workspace(project)
+        _wait(qapp, lambda: win.editor.is_ready)
+        win._file_changed_on_disk(str(project / "main.py"))  # 150 ms sonra kontrol
+        win.check_project()  # arka planda Ruff
+        win._closing_ok = True
+        win.close()
+        _wait(qapp, lambda: not shiboken6.isValid(win))
+        from PySide6.QtCore import QDeadlineTimer, QEventLoop, QThreadPool
+
+        QThreadPool.globalInstance().waitForDone(10000)
+        deadline = QDeadlineTimer(1000)
+        while not deadline.hasExpired():
+            qapp.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 50)
+    finally:
+        sys.excepthook = previous
+    assert errors == []

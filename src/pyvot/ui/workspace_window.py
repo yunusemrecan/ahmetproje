@@ -41,6 +41,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+import shiboken6
+
 from pyvot.core import files, launch, ruff, terminal, vscode
 from pyvot.core.projects import inspect
 from pyvot.i18n import tr
@@ -624,7 +626,8 @@ class WorkspaceWindow(QMainWindow):
     def _file_changed_on_disk(self, raw: str) -> None:
         path = Path(raw)
         # Atomik yazmalardan sonra izleme düşer; dosya duruyorsa yeniden ekle.
-        QTimer.singleShot(150, lambda: self._recheck(path))
+        # Pencereye bağlı zamanlayıcı: pencere kapanırsa iptal olur.
+        QTimer.singleShot(150, self, lambda: self._recheck(path))
 
     def _recheck(self, path: Path) -> None:
         if path.exists() and str(path) not in self.watcher.files():
@@ -697,6 +700,8 @@ class WorkspaceWindow(QMainWindow):
         ruff_path, project = self.ruff, self.project
 
         def done(diagnostics: list[ruff.Diagnostic]) -> None:
+            if not shiboken6.isValid(self):
+                return  # sonuç gelene kadar pencere kapandı
             self.problems.set_all(diagnostics)
             for tab in self.tabs.values():
                 if tab.kind == "editor" and self.editor is not None:
@@ -710,6 +715,8 @@ class WorkspaceWindow(QMainWindow):
             return
 
         def done(diagnostics: list[ruff.Diagnostic]) -> None:
+            if not shiboken6.isValid(self):
+                return  # sonuç gelene kadar pencere kapandı
             self.problems.set_file(path, diagnostics)
             if self.editor is not None and str(path) in self.tabs:
                 self.editor.set_markers(path, [d.to_marker() for d in diagnostics])

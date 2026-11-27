@@ -87,6 +87,7 @@ jobs:
 
       - name: Çalışma denemesi (paketlenmiş uygulama)
         shell: pwsh
+        timeout-minutes: 10
         run: |
           & dist\Pyvot\uv.exe --version
           if ($LASTEXITCODE -ne 0) { throw "uv.exe çalışmadı" }
@@ -94,8 +95,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "ruff.exe çalışmadı" }
           # Proje penceresini ve Monaco editörünü gerçekten açıp kapatır.
           $env:PYVOT_SELF_TEST_REPORT = "$PWD\selftest.txt"
-          $p = Start-Process -FilePath dist\Pyvot\Pyvot.exe -ArgumentList "--self-test" -PassThru -Wait
+          # -Wait kullanılmıyor: alt süreçleri (QtWebEngineProcess) de beklediği için takılabiliyor.
+          $p = Start-Process -FilePath dist\Pyvot\Pyvot.exe -ArgumentList "--self-test" -PassThru
+          $finished = $p.WaitForExit(180000)
           if (Test-Path selftest.txt) { Get-Content selftest.txt }
+          if (-not $finished) {
+            taskkill /T /F /PID $p.Id | Out-Null
+            throw "Kendi kendini deneme 3 dakikada bitmedi (rapor yukarıda)"
+          }
           if ($p.ExitCode -ne 0) { throw "Kendi kendini deneme başarısız (çıkış kodu $($p.ExitCode))" }
           "Kurulu boyut: {0:N0} MB" -f ((Get-ChildItem dist\Pyvot -Recurse | Measure-Object Length -Sum).Sum / 1MB)
 

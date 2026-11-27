@@ -89,34 +89,42 @@ def _self_test(app, ctx) -> int:  # noqa: ANN001
 
     from pyvot.core import ruff, uvtool
 
-    report: list[str] = []
+    target = os.environ.get("PYVOT_SELF_TEST_REPORT")
+
+    def note(line: str) -> None:
+        # Her satır hemen yazılır: uygulama takılırsa nereye kadar geldiği görünsün.
+        if target:
+            with open(target, "a", encoding="utf-8") as handle:
+                handle.write(line + "\n")
+
+    if target:
+        Path(target).write_text("", encoding="utf-8")
     project = Path(tempfile.mkdtemp(prefix="pyvot-self-test-"))
     (project / "main.py").write_text("print('merhaba')\n", encoding="utf-8")
-    report.append(f"uv: {uvtool.find_uv()}")
-    report.append(f"ruff: {ruff.find_ruff()}")
+    note(f"uv: {uvtool.find_uv()}")
+    note(f"ruff: {ruff.find_ruff()}")
+    note("opening workspace")
     window = ctx.open_workspace(project)
+    note("workspace opened")
     editor = getattr(window, "editor", None)
-    result = {"code": 1}
 
     def finish() -> None:
         ready = editor is not None and editor.is_ready
-        report.append(f"monaco: {'ready' if ready else 'NOT READY'}")
+        note(f"monaco: {'ready' if ready else 'NOT READY'}")
         if editor is not None and not ready:
-            report.extend(editor.page.console[-10:])
+            for line in editor.page.console[-10:]:
+                note(line)
         ok = ready and uvtool.find_uv() is not None and ruff.find_ruff() is not None
-        result["code"] = 0 if ok else 1
-        report.append("OK" if ok else "FAILED")
-        target = os.environ.get("PYVOT_SELF_TEST_REPORT")
-        if target:
-            Path(target).write_text("\n".join(report) + "\n", encoding="utf-8")
-        window._closing_ok = True  # type: ignore[attr-defined]
-        app.quit()
+        note("OK" if ok else "FAILED")
+        # QtWebEngine'in kapanışı bazen takılıyor; sonuç yazıldıktan sonra hemen çık.
+        sys.stdout.flush()
+        os._exit(0 if ok else 1)
 
     if editor is not None:
         editor.ready.connect(lambda: QTimer.singleShot(500, finish))
     QTimer.singleShot(60000, finish)
     app.exec()
-    return result["code"]
+    return 1
 
 
 if __name__ == "__main__":

@@ -46,6 +46,9 @@ jobs:
     name: Windows paketi
     needs: test
     runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      artifact: Pyvot-${{ steps.version.outputs.version }}-windows
     steps:
       - uses: actions/checkout@v5
 
@@ -112,3 +115,51 @@ jobs:
           name: Pyvot-${{ steps.version.outputs.version }}-windows
           path: out/*
           if-no-files-found: error
+
+  nightly:
+    name: Nightly sürümü yayınla
+    needs: windows
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: nightly-release
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: ${{ needs.windows.outputs.artifact }}
+          path: in
+
+      - name: Dosyaları sabit adlarla hazırla
+        run: |
+          mkdir out
+          cp in/Pyvot-Setup-*.exe out/Pyvot-Setup.exe
+          cp in/Pyvot-*-portable.zip out/Pyvot-portable.zip
+          (cd out && sha256sum Pyvot-Setup.exe Pyvot-portable.zip > SHA256SUMS.txt)
+          cat out/SHA256SUMS.txt
+
+      - name: nightly sürümünü yeniden oluştur
+        run: |
+          short=$(echo "$GITHUB_SHA" | cut -c1-7)
+          version="${{ needs.windows.outputs.version }}"
+          cat > notes.md <<NOTES
+          Her \`main\` gönderiminden otomatik üretilen **test sürümü**. Kararlı değildir.
+
+          - Sürüm: \`$version\` · Commit: [\`$short\`](https://github.com/$GH_REPO/commit/$GITHUB_SHA) · $(date -u '+%Y-%m-%d %H:%M UTC')
+          - **Pyvot-Setup.exe**: kurulum sihirbazı (yönetici izni gerekmez)
+          - **Pyvot-portable.zip**: kurulumsuz sürüm; açıp \`Pyvot.exe\`'yi çalıştırın
+          - **SHA256SUMS.txt**: dosyaların doğrulama kodları
+
+          Uygulama imzalı olmadığı için Windows SmartScreen uyarabilir: **Ek bilgi → Yine de çalıştır**.
+          NOTES
+          gh release delete nightly --cleanup-tag --yes || true
+          gh release create nightly out/* \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "Pyvot nightly ($version, $short)" \
+            --notes-file notes.md

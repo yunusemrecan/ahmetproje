@@ -33,10 +33,11 @@
 
 ## Kurulum
 
-GitHub'da **Actions → Build** sekmesinden son başarılı çalışmayı açın. **Artifacts** bölümündeki `Pyvot-…-windows` dosyasını indirin. İçinde iki seçenek var:
+En son test sürümü (**nightly**), `main` dalına yapılan her gönderimden sonra otomatik yayınlanır:
 
-- `Pyvot-Setup-<sürüm>.exe`: kurulum sihirbazı. Yönetici izni gerektirmez.
-- `Pyvot-<sürüm>-portable.zip`: kurulumsuz sürüm. Zip'i açıp `Pyvot.exe`'yi çalıştırmanız yeterli.
+- **[Pyvot-Setup.exe](https://github.com/yunusemrecan/ahmetproje/releases/download/nightly/Pyvot-Setup.exe)**: kurulum sihirbazı. Yönetici izni gerektirmez.
+- **[Pyvot-portable.zip](https://github.com/yunusemrecan/ahmetproje/releases/download/nightly/Pyvot-portable.zip)**: kurulumsuz sürüm. Zip'i açıp `Pyvot.exe`'yi çalıştırmanız yeterli.
+- Sürüm sayfası ve doğrulama kodları (SHA256): [Releases → nightly](https://github.com/yunusemrecan/ahmetproje/releases/tag/nightly)
 
 Uygulama imzalı olmadığı için Windows SmartScreen ilk açılışta uyarabilir. **Ek bilgi → Yine de çalıştır** ile açabilirsiniz.
 

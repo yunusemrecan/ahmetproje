@@ -161,7 +161,9 @@ def _self_test(app, ctx) -> int:  # noqa: ANN001
         ok = ready and uvtool.find_uv() is not None and ruff.find_ruff() is not None
         note("OK" if ok else "FAILED")
         # QtWebEngine'in kapanışı bazen takılıyor; sonuç yazıldıktan sonra hemen çık.
-        sys.stdout.flush()
+        # Pencereli (konsolsuz) Windows uygulamasında sys.stdout None'dır.
+        if sys.stdout is not None:
+            sys.stdout.flush()
         os._exit(0 if ok else 1)
 
     if editor is not None:

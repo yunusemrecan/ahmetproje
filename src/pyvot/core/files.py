@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -103,9 +104,24 @@ def write_text(path: Path, text: str, eol: str = "\n") -> None:
     text = text.replace("\r\n", "\n")  # Monaco metni dosyanın kendi satır sonuyla verir
     if eol != "\n":
         text = text.replace("\n", eol)
+    data = text.encode("utf-8")
     tmp = path.with_name(path.name + ".pyvot-tmp")
-    tmp.write_bytes(text.encode("utf-8"))
-    tmp.replace(path)
+    tmp.write_bytes(data)
+    # Önce geçici dosyayı yerine koy (yarıda kesilirse eski dosya bozulmaz).
+    # Windows bu değişimi, dosya başka bir yerde kısa süreliğine okunurken bile
+    # reddeder (ör. dış değişiklik kontrolü, virüs tarayıcısı, arama dizini).
+    for attempt in range(10):
+        try:
+            tmp.replace(path)
+            return
+        except PermissionError:
+            time.sleep(0.05 * (attempt + 1))
+    # Hâlâ olmadıysa dosyanın içine doğrudan yaz: okunurken de izin verilir.
+    try:
+        with open(path, "wb") as handle:
+            handle.write(data)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 # --- oturum (proje yeniden açılınca kalınan yerden devam) ----------------------------

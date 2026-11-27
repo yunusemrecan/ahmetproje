@@ -215,3 +215,21 @@ def test_session_store(tmp_path):
     assert store.load(tmp_path).open_files == ["a.py"]
     (tmp_path / "ws.json").write_text("{bozuk", encoding="utf-8")
     assert store.load(tmp_path) == files.Session()
+
+
+def test_write_text_falls_back_when_replace_is_refused(tmp_path, monkeypatch):
+    """Windows'ta dosya başka yerde açıkken os.replace reddedilir; kayıt yine de olmalı."""
+    target = tmp_path / "kilitli.py"
+    target.write_text("eski\n", encoding="utf-8")
+    calls = []
+
+    def refuse(self, other):  # noqa: ANN001, ANN202
+        calls.append(other)
+        raise PermissionError(5, "Access is denied")
+
+    monkeypatch.setattr(Path, "replace", refuse)
+    monkeypatch.setattr(files.time, "sleep", lambda _s: None)
+    files.write_text(target, "yeni\r\n", "\r\n")
+    assert target.read_bytes() == b"yeni\r\n"
+    assert len(calls) == 10
+    assert not (tmp_path / "kilitli.py.pyvot-tmp").exists()

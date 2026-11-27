@@ -14,16 +14,19 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
+    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
-from pyvot.core import projects, terminal, vscode
+from pyvot.core import deps, projects, terminal, vscode
 from pyvot.i18n import tr
 from pyvot.ui.context import AppContext
 from pyvot.ui.existing_project_dialog import ExistingProjectDialog, needs_setup
 from pyvot.ui.new_project_wizard import NewProjectWizard
+from pyvot.ui.project_panel import ProjectPanel
+from pyvot.ui.workers import run_in_background
 from pyvot.ui.widgets import muted, page_title
 
 COLUMNS = ("col.pin", "col.project", "col.python", "col.environment", "col.last_opened", "col.location")
@@ -98,15 +101,29 @@ class ProjectsPage(QWidget):
 
         self.empty_label = muted(tr("projects.empty"))
         self.status = muted()
+        self.panel = ProjectPanel(ctx)
+        self._sync_token = 0
+
+        left = QWidget()
+        left_layout = QVBoxLayout(left)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.addLayout(top)
+        left_layout.addWidget(self.table, 1)
+        left_layout.addWidget(self.empty_label)
+        left_layout.addLayout(actions)
+        left_layout.addWidget(self.status)
+
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.splitter.addWidget(left)
+        self.splitter.addWidget(self.panel)
+        self.splitter.setStretchFactor(0, 3)
+        self.splitter.setStretchFactor(1, 2)
+        self.splitter.setChildrenCollapsible(False)
 
         layout = QVBoxLayout(self)
         layout.addWidget(page_title(tr("nav.projects")))
         layout.addWidget(muted(tr("projects.intro")))
-        layout.addLayout(top)
-        layout.addWidget(self.table, 1)
-        layout.addWidget(self.empty_label)
-        layout.addLayout(actions)
-        layout.addWidget(self.status)
+        layout.addWidget(self.splitter, 1)
 
         self.new_btn.clicked.connect(self.new_project)
         self.add_btn.clicked.connect(self.add_existing)
@@ -121,6 +138,8 @@ class ProjectsPage(QWidget):
         self.pin_btn.clicked.connect(self.toggle_pin)
         self.remove_btn.clicked.connect(self.remove)
         self.trash_btn.clicked.connect(self.move_to_trash)
+        self.panel.changed.connect(self.refresh)
+        self.panel.busy_changed.connect(self._panel_busy)
         self.refresh()
 
     # --- liste -------------------------------------------------------------------------
@@ -128,6 +147,7 @@ class ProjectsPage(QWidget):
     def refresh(self, select: str | Path | None = None) -> None:
         current = str(select) if select is not None else self.selected_path()
         self.infos.clear()
+        self.table.blockSignals(True)
         self.table.setRowCount(0)
         warn = QColor("#d9534f")
         for entry in self.ctx.projects.sorted():
@@ -161,11 +181,46 @@ class ProjectsPage(QWidget):
                 self.table.setItem(row, column, item)
             if current and entry.path == current:
                 self.table.selectRow(row)
+        self.table.blockSignals(False)
         has_projects = self.table.rowCount() > 0
         self.table.setVisible(has_projects)
         self.empty_label.setVisible(not has_projects)
         self.apply_filter()
         self._update_buttons()
+        self._check_sync_states()
+
+    def _check_sync_states(self) -> None:
+        """Hazır görünen projelerde pyproject/uv.lock/.venv uyumunu arka planda denetler."""
+        self._sync_token += 1
+        token = self._sync_token
+        paths = [p for p, info in self.infos.items() if info.venv_state == "ok" and info.has_pyproject]
+        if not paths or not self.ctx.uv:
+            return
+        uv = self.ctx.uv
+
+        def check() -> dict[str, str]:
+            return {p: deps.sync_state(Path(p), uv) for p in paths}
+
+        def done(states: dict[str, str]) -> None:
+            if token != self._sync_token:
+                return
+            for row in range(self.table.rowCount()):
+                item = self.table.item(row, 1)
+                path = item.data(Qt.ItemDataRole.UserRole) if item else None
+                if states.get(path) == "unsynced":
+                    cell = self.table.item(row, 3)
+                    if cell is not None:
+                        cell.setText(tr("sync.unsynced"))
+                        cell.setForeground(QColor("#d9534f"))
+
+        run_in_background(check, on_done=done)
+
+    def _panel_busy(self, busy: bool) -> None:
+        self.table.setEnabled(not busy)
+        for button in (self.new_btn, self.add_btn, self.remove_btn, self.trash_btn):
+            button.setEnabled(not busy)
+        if not busy:
+            self._update_buttons()
 
     def apply_filter(self) -> None:
         needle = self.search.text().strip().lower()
@@ -188,6 +243,7 @@ class ProjectsPage(QWidget):
 
     def _update_buttons(self) -> None:
         info = self.selected_info()
+        self.panel.set_project(info.path if info else None)
         exists = info is not None and info.exists
         for button in (self.vscode_btn, self.folder_btn, self.terminal_btn, self.trash_btn):
             button.setEnabled(exists)
@@ -229,6 +285,18 @@ class ProjectsPage(QWidget):
         info = self.selected_info()
         if info is None or not info.exists:
             return
+        if info.venv_state == "broken":
+            answer = QMessageBox.question(
+                self,
+                tr("projects.open_vscode"),
+                tr("projects.ask_repair", name=info.name),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
+            )
+            if answer == QMessageBox.StandardButton.Cancel:
+                return
+            if answer == QMessageBox.StandardButton.Yes:
+                self.panel.repair()
+                return
         if vscode.open_folder(info.path):
             self.ctx.projects.touch(info.path)
             self.status.setText(tr("projects.vscode_opening"))

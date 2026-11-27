@@ -7,7 +7,7 @@
 >
 > *This app's code was written by an AI (Anthropic's Claude), following a person's plain-language instructions.*
 
-## Şu an neler yapabiliyor? (v0.2)
+## Şu an neler yapabiliyor? (v0.2.1)
 
 **Projeler**
 - Yeni proje sihirbazı: ad ve konum (varsayılan `C:\PyvotProjects`) → şablon → Python sürümü → seçenekler.
@@ -17,6 +17,11 @@
 - Proje listesi: sabitleme, arama; **VS Code'da aç**, **Klasörü aç**, **Terminalde aç** (sanal ortam etkin), **Paketleri göster**.
 - **Listeden çıkar** (dosyalara dokunmaz) ya da **Çöp kutusuna taşı** (geri alınabilir).
 - Var olan klasörü ekleme: `.venv`, `pyproject.toml`, `requirements.txt`, `.git` algılanır; eksikler tamamlanır. Var olan dosyaların üzerine asla yazılmaz.
+- **Proje paneli** (sağda):
+  - **Özet:** Python sürümü, ortam durumu, `pyproject.toml` / `uv.lock` / `.venv` eşitliği.
+  - **Bağımlılıklar:** ana ve geliştirme bağımlılıkları; paket ekle, kaldır, eşitle.
+  - **Güncelleme:** istenen sürüm aralığında güncelle, ya da "Büyük sürüme yükselt".
+  - **İşlemler:** ortamı onar, Python sürümünü değiştir, `requirements.txt`'den dönüştür ya da ona dışa aktar.
 
 **Python sürümleri**
 - Bilgisayardaki tüm Python kurulumlarını otomatik bulur. Arandığı yerler:
@@ -58,7 +63,7 @@ Ayarlar `%LOCALAPPDATA%\Pyvot\settings.json` dosyasında tutulur.
 |---|---|
 | **v0.1** ✅ | Python sürümlerini bulma, paket yönetimi, PyPI arama, Windows kurulum dosyası |
 | **v0.2.0** ✅ | Projeler sayfası, yeni proje sihirbazı (Boş, Komut satırı, Veri analizi), VS Code dosyaları, terminal, var olan projeyi ekleme |
-| v0.2.1 | Proje ayrıntı paneli: bağımlılıklar, eşitleme, paket ekle/kaldır (`pyproject.toml`'a yazılır), bozuk `.venv`'i onarma, Python sürümünü değiştirme |
+| **v0.2.1** ✅ | Proje ayrıntı paneli: bağımlılıklar (ana/geliştirme), eşitleme, ekle/kaldır/güncelle, büyük sürüme yükseltme, ortamı onarma, Python sürümünü değiştirme, requirements.txt dönüştürme/dışa aktarma |
 | v0.2.2 | Yeni şablonlar: Web API (FastAPI), Web sitesi (Flask), Masaüstü (PySide6), Oyun (pygame) |
 | v0.3 | Gömülü editör (Monaco, VS Code'un editörü), dosya ağacı, önizleme, konsol, script çalıştırma, terminal |
 | v0.4 | Python sürümü kurma/kaldırma (uv ile), `requirements.txt` / `pyproject.toml` içe-dışa aktarma, conda desteği |

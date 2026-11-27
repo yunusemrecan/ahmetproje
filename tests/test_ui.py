@@ -135,3 +135,40 @@ def test_move_to_trash_on_windows(qapp, tmp_path):
     (folder / "src" / "main.py").write_text("print('x')", encoding="utf-8")
     assert move_to_trash(folder)
     assert not folder.exists()
+
+
+def test_project_panel_shows_dependencies(qapp, tmp_path, uv_bin):
+    from pyvot.core import deps, projects
+    from pyvot.core.settings import Settings
+    from pyvot.ui.context import AppContext
+    from pyvot.ui.main_window import MainWindow
+
+    version = ".".join(map(str, sys.version_info[:3]))
+    new = projects.NewProject(name="panel", parent=tmp_path, template="empty", python=sys.executable, python_version=version, git=False)
+    target = projects.create(new, uv_bin, lambda _l: None)
+    (target / "pyproject.toml").write_text(
+        (target / "pyproject.toml").read_text(encoding="utf-8").replace("dependencies = []", 'dependencies = ["six>=1"]')
+        + '\n[dependency-groups]\ndev = ["pytest>=8"]\n',
+        encoding="utf-8",
+    )
+    ctx = AppContext(Settings(extra_pythons=[sys.executable]))
+    ctx.projects.add(target)
+    window = MainWindow(ctx)
+    page = window.projects
+    page.refresh()
+    page.table.selectRow(0)
+    panel = page.panel
+    assert panel.info is not None and panel.info.path == target
+    _wait(qapp, lambda: panel.sum_sync.text() != i18n_tr("info.loading"))
+    assert panel.sum_sync.text() == i18n_tr("sync.unsynced")  # pyproject değişti, uv.lock eski
+    names = [panel.tree.topLevelItem(i).text(0).strip() for i in range(panel.tree.topLevelItemCount())]
+    assert "six" in names and "pytest" in names
+    assert panel.add_btn.isEnabled() and not panel.major_btn.isEnabled()
+    assert deps.sync_state(target, uv_bin) == "unsynced"
+    window.close()
+
+
+def i18n_tr(key: str) -> str:
+    from pyvot.i18n import tr
+
+    return tr(key)

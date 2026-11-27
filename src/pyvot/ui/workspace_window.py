@@ -265,6 +265,13 @@ class WorkspaceWindow(QMainWindow):
         self._build_actions()
         self.watcher = QFileSystemWatcher(self)
         self.watcher.fileChanged.connect(self._file_changed_on_disk)
+        # Dosya izleyicisi Windows'ta bazı değişiklikleri kaçırabiliyor; açık dosyaların
+        # değişiklik zamanı ve boyutu ayrıca düzenli aralıklarla da kontrol edilir.
+        self._stamps: dict[Path, tuple[int, int] | None] = {}
+        self._poll = QTimer(self)
+        self._poll.setInterval(1500)
+        self._poll.timeout.connect(self._poll_open_files)
+        self._poll.start()
 
         self.tab_bar.currentChanged.connect(self._tab_changed)
         self.tab_bar.tabCloseRequested.connect(lambda i: self.close_tab(self._key_at(i)))
@@ -476,6 +483,7 @@ class WorkspaceWindow(QMainWindow):
         if self.editor is None:
             return None
         tab = Tab(key=key, path=path, kind="editor", eol=eol, disk_text=text)
+        self._remember_stamp(path)
         self.editor.open(path, text, files.language_for(path), eol)
         self._add_tab(tab, self._tab_title(tab))
         self.watcher.addPath(key)
@@ -575,6 +583,7 @@ class WorkspaceWindow(QMainWindow):
                 QMessageBox.warning(self, tr("workspace.save"), tr("workspace.save_failed", path=str(tab.path), error=str(exc)))
                 return
             tab.disk_text = text.replace("\r\n", "\n")
+            self._remember_stamp(tab.path)
             tab.deleted = False
             self.editor.mark_saved(tab.path, version)  # type: ignore[union-attr]
             if str(tab.path) not in self.watcher.files():
@@ -629,7 +638,30 @@ class WorkspaceWindow(QMainWindow):
         # Pencereye bağlı zamanlayıcı: pencere kapanırsa iptal olur.
         QTimer.singleShot(150, self, lambda: self._recheck(path))
 
+    @staticmethod
+    def _stamp(path: Path) -> tuple[int, int] | None:
+        try:
+            info = path.stat()
+        except OSError:
+            return None
+        return (info.st_mtime_ns, info.st_size)
+
+    def _remember_stamp(self, path: Path) -> None:
+        self._stamps[path] = self._stamp(path)
+
+    def _poll_open_files(self) -> None:
+        for path in {t.path for t in self.tabs.values()}:
+            if self._stamp(path) != self._stamps.get(path):
+                self._recheck(path)
+
+    def changeEvent(self, event) -> None:  # noqa: ANN001, N802
+        super().changeEvent(event)
+        # Başka bir programdan (ör. VS Code) dönünce hemen kontrol et.
+        if event.type() == event.Type.ActivationChange and self.isActiveWindow():
+            self._poll_open_files()
+
     def _recheck(self, path: Path) -> None:
+        self._remember_stamp(path)
         if path.exists() and str(path) not in self.watcher.files():
             self.watcher.addPath(str(path))
         for tab in [t for t in self.tabs.values() if t.path == path]:

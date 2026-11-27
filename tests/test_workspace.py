@@ -255,3 +255,11 @@ def test_late_results_after_window_closed_do_not_crash(qapp, project):
     finally:
         sys.excepthook = previous
     assert errors == []
+
+
+def test_external_change_is_detected_without_file_watcher(qapp, window, project):
+    """Windows'ta dosya izleyicisi değişikliği kaçırsa da düzenli kontrol yakalamalı."""
+    window.watcher.fileChanged.disconnect()
+    main = (project / "main.py").resolve()
+    main.write_text("print('yoklama')\n", encoding="utf-8")
+    _wait(qapp, lambda: _editor_text(qapp, window, main) == "print('yoklama')\n", timeout_ms=10000)

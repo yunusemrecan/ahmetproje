@@ -4,6 +4,7 @@ from PySide6.QtCore import QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QComboBox,
+    QSpinBox,
     QFileDialog,
     QFormLayout,
     QGroupBox,
@@ -63,11 +64,21 @@ class SettingsPage(QWidget):
         root_row.addWidget(self.projects_root, 1)
         root_row.addWidget(browse_root)
 
+        self.double_click = QComboBox()
+        for code, key in (("pyvot", "settings.double_click_pyvot"), ("vscode", "settings.double_click_vscode")):
+            self.double_click.addItem(tr(key), code)
+        self.double_click.setCurrentIndex(max(0, self.double_click.findData(s.double_click)))
+        self.font_size = QSpinBox()
+        self.font_size.setRange(8, 32)
+        self.font_size.setValue(s.editor_font_size)
+
         appearance = QGroupBox(tr("settings.appearance"))
         form = QFormLayout(appearance)
         form.addRow(tr("settings.language"), self.language)
         form.addRow("", self.restart_note)
         form.addRow(tr("settings.theme"), self.theme)
+        form.addRow(tr("settings.editor_font_size"), self.font_size)
+        form.addRow(tr("settings.double_click"), self.double_click)
 
         tools = QGroupBox(tr("settings.tools"))
         form2 = QFormLayout(tools)
@@ -91,6 +102,8 @@ class SettingsPage(QWidget):
 
         self.language.currentIndexChanged.connect(self._language_changed)
         self.theme.currentIndexChanged.connect(self._theme_changed)
+        self.double_click.currentIndexChanged.connect(self._double_click_changed)
+        self.font_size.valueChanged.connect(self._font_size_changed)
         self.backend.currentIndexChanged.connect(self._backend_changed)
         self.uv_path.editingFinished.connect(self._uv_path_changed)
         browse.clicked.connect(self._browse_uv)
@@ -111,6 +124,18 @@ class SettingsPage(QWidget):
         self.ctx.settings.theme = self.theme.currentData()
         self._save()
         self.theme_changed.emit(self.ctx.settings.theme)
+
+    def _double_click_changed(self) -> None:
+        self.ctx.settings.double_click = self.double_click.currentData()
+        self._save()
+
+    def _font_size_changed(self, value: int) -> None:
+        self.ctx.settings.editor_font_size = value
+        self._save()
+        for window in self.ctx.workspaces.values():
+            editor = getattr(window, "editor", None)
+            if editor is not None:
+                editor.set_options(window.editor_options())  # type: ignore[attr-defined]
 
     def _backend_changed(self) -> None:
         self.ctx.settings.backend = self.backend.currentData()

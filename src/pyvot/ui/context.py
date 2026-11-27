@@ -19,6 +19,7 @@ class AppContext(QObject):
     discovery_failed = Signal(str)
     busy_changed = Signal(bool)
     show_packages_for = Signal(str)  # yorumlayıcı yolu
+    theme_changed = Signal()
 
     def __init__(self, settings: Settings) -> None:
         super().__init__()
@@ -28,6 +29,7 @@ class AppContext(QObject):
         self.uv_version: str | None = None
         self.pypi_index = PypiIndex()
         self.projects = ProjectStore()
+        self.workspaces: dict[str, object] = {}  # proje yolu -> açık proje penceresi
         self.discovering = False
         self._busy = 0
         self.refresh_uv()
@@ -88,6 +90,26 @@ class AppContext(QObject):
             self.settings.save()
             return True
         return False
+
+    # --- proje pencereleri -------------------------------------------------------------
+
+    def open_workspace(self, path) -> object:  # noqa: ANN001
+        """Projeyi kendi penceresinde açar; zaten açıksa o pencereyi öne getirir."""
+        from pathlib import Path
+
+        from pyvot.ui.workspace_window import WorkspaceWindow
+
+        key = str(Path(path).resolve())
+        window = self.workspaces.get(key)
+        if window is None:
+            window = WorkspaceWindow(self, Path(key))
+            self.workspaces[key] = window
+            window.destroyed.connect(lambda _obj=None, k=key: self.workspaces.pop(k, None))
+        window.show()  # type: ignore[attr-defined]
+        window.raise_()  # type: ignore[attr-defined]
+        window.activateWindow()  # type: ignore[attr-defined]
+        self.projects.touch(key)
+        return window
 
     # --- meşgul göstergesi --------------------------------------------------------
 

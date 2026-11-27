@@ -21,6 +21,8 @@ class Settings:
     extra_pythons: list[str] = field(default_factory=list)
     last_python: str = ""
     projects_root: str = ""  # boşsa C:\\PyvotProjects
+    double_click: str = "pyvot"  # projeye çift tıklayınca: pyvot | vscode
+    editor_font_size: int = 14
 
     @classmethod
     def file(cls) -> Path:
@@ -45,6 +47,10 @@ class Settings:
             settings.backend = "auto"
         if not isinstance(settings.extra_pythons, list):
             settings.extra_pythons = []
+        if settings.double_click not in ("pyvot", "vscode"):
+            settings.double_click = "pyvot"
+        if not isinstance(settings.editor_font_size, int) or not 8 <= settings.editor_font_size <= 32:
+            settings.editor_font_size = 14
         return settings
 
     def save(self, path: Path | None = None) -> None:

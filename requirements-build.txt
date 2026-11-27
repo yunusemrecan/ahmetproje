@@ -2,3 +2,5 @@
 pyinstaller==6.22.3
 # Uygulamayla birlikte dağıtılan uv
 uv==0.11.32
+# Uygulamayla birlikte dağıtılan Ruff (kod denetimi ve biçimlendirme)
+ruff==0.17.6

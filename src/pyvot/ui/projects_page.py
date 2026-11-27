@@ -85,6 +85,8 @@ class ProjectsPage(QWidget):
         header.setStretchLastSection(True)
         self.table.setColumnWidth(1, 220)
 
+        self.open_btn = QPushButton(tr("projects.open_pyvot"))
+        self.open_btn.setDefault(True)
         self.vscode_btn = QPushButton(tr("projects.open_vscode"))
         self.folder_btn = QPushButton(tr("projects.open_folder"))
         self.terminal_btn = QPushButton(tr("projects.open_terminal"))
@@ -93,7 +95,7 @@ class ProjectsPage(QWidget):
         self.remove_btn = QPushButton(tr("projects.remove"))
         self.trash_btn = QPushButton(tr("projects.trash"))
         actions = QHBoxLayout()
-        for button in (self.vscode_btn, self.folder_btn, self.terminal_btn, self.packages_btn):
+        for button in (self.open_btn, self.vscode_btn, self.folder_btn, self.terminal_btn, self.packages_btn):
             actions.addWidget(button)
         actions.addStretch(1)
         for button in (self.pin_btn, self.remove_btn, self.trash_btn):
@@ -129,7 +131,8 @@ class ProjectsPage(QWidget):
         self.add_btn.clicked.connect(self.add_existing)
         self.search.textChanged.connect(self.apply_filter)
         self.table.itemSelectionChanged.connect(self._update_buttons)
-        self.table.doubleClicked.connect(lambda _index: self.open_vscode())
+        self.table.doubleClicked.connect(lambda _index: self.open_default())
+        self.open_btn.clicked.connect(self.open_in_pyvot)
         self.table.customContextMenuRequested.connect(self._context_menu)
         self.vscode_btn.clicked.connect(self.open_vscode)
         self.folder_btn.clicked.connect(self.open_folder)
@@ -245,7 +248,7 @@ class ProjectsPage(QWidget):
         info = self.selected_info()
         self.panel.set_project(info.path if info else None)
         exists = info is not None and info.exists
-        for button in (self.vscode_btn, self.folder_btn, self.terminal_btn, self.trash_btn):
+        for button in (self.open_btn, self.vscode_btn, self.folder_btn, self.terminal_btn, self.trash_btn):
             button.setEnabled(exists)
         self.packages_btn.setEnabled(exists and info is not None and info.interpreter is not None)
         self.remove_btn.setEnabled(info is not None)
@@ -280,6 +283,19 @@ class ProjectsPage(QWidget):
         else:
             self.status.setText(tr("projects.already_listed"))
         self.refresh(select=str(self.ctx.projects.find(path).path))  # type: ignore[union-attr]
+
+    def open_default(self) -> None:
+        if self.ctx.settings.double_click == "vscode":
+            self.open_vscode()
+        else:
+            self.open_in_pyvot()
+
+    def open_in_pyvot(self) -> None:
+        info = self.selected_info()
+        if info is None or not info.exists:
+            return
+        self.ctx.open_workspace(info.path)
+        self.refresh()
 
     def open_vscode(self) -> None:
         info = self.selected_info()
@@ -377,6 +393,7 @@ class ProjectsPage(QWidget):
             return
         menu = QMenu(self)
         for button in (
+            self.open_btn,
             self.vscode_btn,
             self.folder_btn,
             self.terminal_btn,

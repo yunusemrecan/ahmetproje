@@ -51,7 +51,8 @@ class MainWindow(QMainWindow):
             self.update_count()
 
     def update_count(self) -> None:
-        self.count.setText("{{t:desktop_count}}".format(count=self.items.count()))
+        count = self.items.count()
+        self.count.setText(f"{{t:desktop_count}}")
 
 
 def main() -> int:

@@ -3,7 +3,10 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-app = FastAPI(title="{{name}}", description="{{t:api_desc}}")
+app = FastAPI(
+    title="{{name}}",
+    description="{{t:api_desc}}",
+)
 
 
 class TaskIn(BaseModel):
@@ -22,7 +25,10 @@ next_id = 1
 
 @app.get("/")
 def home() -> dict[str, str]:
-    return {"message": "{{t:api_hello}}", "docs": "/docs"}
+    return {
+        "message": "{{t:api_hello}}",
+        "docs": "/docs",
+    }
 
 
 @app.get("/tasks")

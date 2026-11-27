@@ -97,6 +97,7 @@ class MainWindow(QMainWindow):
 
     def _apply_theme(self, mode: str) -> None:
         apply_theme(QApplication.instance(), mode)  # type: ignore[arg-type]
+        self.ctx.theme_changed.emit()
 
     def _follow_system_theme(self) -> None:
         hints = QApplication.styleHints()

@@ -7,7 +7,21 @@
 >
 > *This app's code was written by an AI (Anthropic's Claude), following a person's plain-language instructions.*
 
-## Şu an neler yapabiliyor? (v0.2.2)
+## Şu an neler yapabiliyor? (v0.3.0)
+
+**Proje penceresi (Pyvot içinde kod yazma)**
+- Proje kendi penceresinde açılır: solda dosya ağacı, ortada sekmeli editör, altta Konsol ve Sorunlar.
+- Editör **Monaco**, yani VS Code'un editörü: aynı kısayollar, bul/değiştir, çoklu imleç, kod katlama.
+  - Python, JS, HTML, CSS, JSON, TOML, YAML, Markdown dosyaları.
+  - `.vscode/settings.json` ayarlarına uyar (sekme genişliği, yazı boyutu, kaydederken biçimlendir).
+- **Çalıştır (F5)** `launch.json`'daki ayarı aynen kullanır; VS Code'daki F5 ile aynı şeyi yapar.
+  - Konsolda `input()` için yazı yazılabilir.
+  - Hata satırlarına tıklayınca dosyanın o satırı açılır.
+  - Web projelerinde tarayıcı açılır.
+- **Ruff** ile kod denetimi (kaydedince) ve **biçimlendirme** (Shift+Alt+F).
+- Önizleme: Markdown, resimler, CSV (tablo), Jupyter defteri (salt okunur).
+- Dosya dışarıda (ör. VS Code'da) değişirse kendiliğinden yeniden yüklenir.
+- Pencere kapanıp açılınca açık sekmeler geri gelir.
 
 **Projeler**
 - Yeni proje sihirbazı: ad ve konum (varsayılan `C:\PyvotProjects`) → şablon → Python sürümü → seçenekler.
@@ -69,9 +83,9 @@ Ayarlar `%LOCALAPPDATA%\Pyvot\settings.json` dosyasında tutulur.
 | **v0.2.0** ✅ | Projeler sayfası, yeni proje sihirbazı (Boş, Komut satırı, Veri analizi), VS Code dosyaları, terminal, var olan projeyi ekleme |
 | **v0.2.1** ✅ | Proje ayrıntı paneli: bağımlılıklar (ana/geliştirme), eşitleme, ekle/kaldır/güncelle, büyük sürüme yükseltme, ortamı onarma, Python sürümünü değiştirme, requirements.txt dönüştürme/dışa aktarma |
 | **v0.2.2** ✅ | Yeni şablonlar: Web API (FastAPI), Web sitesi (Flask), Masaüstü (PySide6), Oyun (pygame-ce); gruplu şablon listesi |
-| v0.3 | Gömülü editör (Monaco, VS Code'un editörü), dosya ağacı, önizleme, konsol, script çalıştırma, terminal |
+| **v0.3.0** ✅ | Proje penceresi: Monaco editör, dosya ağacı, önizleme, launch.json uyumlu çalıştırma ve konsol, Ruff denetimi ve biçimlendirme |
 | v0.4 | Python sürümü kurma/kaldırma (uv ile), `requirements.txt` / `pyproject.toml` içe-dışa aktarma, conda desteği |
-| Sonra | Otomatik tamamlama ve hata gösterimi (Pyright/Ruff), Jupyter, uygulama içi güncelleme |
+| Sonra | Otomatik tamamlama (Pyright), gömülü terminal, Jupyter, uygulama içi güncelleme |
 
 ## Geliştirme
 
@@ -79,6 +93,7 @@ Ayarlar `%LOCALAPPDATA%\Pyvot\settings.json` dosyasında tutulur.
 python -m venv .venv
 .venv\Scripts\activate          # Linux/macOS: source .venv/bin/activate
 pip install -e ".[dev]" uv
+python scripts/fetch_monaco.py   # Monaco editörünü indir (bir kez; ~25 MB)
 python -m pyvot                  # uygulamayı başlat
 pytest                           # testler (-m "not network" ile internetsiz)
 ```
@@ -87,9 +102,10 @@ Windows paketi yerelde şöyle üretilir:
 
 ```bash
 pip install -r requirements-build.txt
+python scripts/fetch_monaco.py
 python scripts/write_version_info.py
 pyinstaller --noconfirm pyvot.spec
-python scripts/bundle_uv.py
+python scripts/bundle_tools.py
 iscc /DAppVersion=0.1.0 installer\pyvot.iss   # Inno Setup 6 gerekli
 ```
 
@@ -99,6 +115,7 @@ iscc /DAppVersion=0.1.0 installer\pyvot.iss   # Inno Setup 6 gerekli
 src/pyvot/
   core/        Qt kullanmayan iş mantığı: Python keşfi, paketler (uv/pip), PyPI, projeler,
                VS Code dosyaları, terminal, ayarlar
+  web/         Monaco editörünün HTML/JS köprüsü (monaco/ klasörü indirilir, git'te yok)
   templates/   proje şablonları ({{name}} ve {{t:anahtar}} yer tutucularıyla)
   ui/          PySide6 arayüzü: sayfalar, arka plan işleri, tema
   i18n.py      Türkçe ve İngilizce metinler

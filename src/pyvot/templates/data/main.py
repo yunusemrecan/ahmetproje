@@ -5,8 +5,8 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")  # {{t:data_agg_comment}}
-import matplotlib.pyplot as plt  # noqa: E402
-import pandas as pd  # noqa: E402
+import matplotlib.pyplot as plt
+import pandas as pd
 
 HERE = Path(__file__).parent
 
@@ -21,7 +21,12 @@ def main() -> None:
     print()
     print(totals)
 
-    ax = totals.plot(kind="bar", title="{{t:chart_title}}", ylabel="{{t:col_sales}}", rot=0)
+    ax = totals.plot(
+        kind="bar",
+        title="{{t:chart_title}}",
+        ylabel="{{t:col_sales}}",
+        rot=0,
+    )
     ax.figure.tight_layout()
     out = HERE / "chart.png"
     ax.figure.savefig(out, dpi=120)

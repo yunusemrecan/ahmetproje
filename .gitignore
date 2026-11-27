@@ -9,3 +9,5 @@ dist/
 .ruff_cache/
 installer/Output/
 installer/version_info.txt
+# scripts/fetch_monaco.py ile indirilir
+src/pyvot/web/monaco/

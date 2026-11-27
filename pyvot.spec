@@ -8,18 +8,14 @@ from pathlib import Path
 ROOT = Path(SPECPATH)
 ICON = ROOT / "installer" / "pyvot.ico"
 
-# v0.1'de kullanılmayan büyük Qt modülleri dışarıda kalır (Monaco v0.3'te gelecek).
+# Kullanılmayan büyük Qt modülleri dışarıda kalır. QtWebEngine (Monaco editörü)
+# QtQml/QtQuick/QtPositioning'e bağlı olduğu için onlar dışlanmaz.
 EXCLUDES = [
-    "PySide6.QtWebEngineCore",
-    "PySide6.QtWebEngineWidgets",
-    "PySide6.QtQml",
-    "PySide6.QtQuick",
     "PySide6.Qt3DCore",
     "PySide6.QtMultimedia",
     "PySide6.QtCharts",
-    "PySide6.QtPdf",
+    "PySide6.QtDataVisualization",
     "PySide6.QtBluetooth",
-    "PySide6.QtPositioning",
     "tkinter",
 ]
 
@@ -29,22 +25,51 @@ a = Analysis(
     datas=[
         (str(ROOT / "src" / "pyvot" / "assets"), "pyvot/assets"),
         (str(ROOT / "src" / "pyvot" / "templates"), "pyvot/templates"),
+        (str(ROOT / "src" / "pyvot" / "web"), "pyvot/web"),  # editor.html + Monaco
     ],
-    hiddenimports=["PySide6.QtSvg"],
+    hiddenimports=["PySide6.QtSvg", "PySide6.QtWebEngineWidgets", "PySide6.QtWebChannel"],
     excludes=EXCLUDES,
     noarchive=False,
 )
 
 
 def _keep(entry) -> bool:
-    """Qt çeviri dosyalarından yalnızca Türkçe ve İngilizce kalsın."""
+    """Qt ve WebEngine çeviri dosyalarından yalnızca Türkçe ve İngilizce kalsın."""
     dest = entry[0].replace("\\", "/")
+    name = dest.rsplit("/", 1)[-1]
+    if "/qtwebengine_locales/" in dest and name.endswith(".pak"):
+        return name in ("tr.pak", "en-US.pak", "en-GB.pak")
     if "/translations/" in dest and dest.endswith(".qm"):
-        return dest.rsplit("/", 1)[-1].split(".")[0].rsplit("_", 1)[-1] in ("tr", "en")
+        return name.split(".")[0].rsplit("_", 1)[-1] in ("tr", "en")
     return True
 
 
-a.datas = [entry for entry in a.datas if _keep(entry)]
+# PySide6 kancaları QtWebEngine ile birlikte kullanmadığımız onlarca Qt kütüphanesini
+# (3D, grafikler, QML denetimleri...) de topluyor. WebEngine'in gerçekten bağlı olduğu
+# kütüphaneler: Core, Gui, Widgets, Network, OpenGL, Positioning, PrintSupport, Qml,
+# QmlMeta, QmlModels, QmlWorkerScript, Quick, QuickWidgets, Svg, WebChannel,
+# WebEngineCore, WebEngineWidgets, DBus. Aşağıdakiler bunların dışında kalanlar.
+import re as _re
+
+_UNUSED_QT = _re.compile(
+    r"^(?:lib)?Qt6(3D|Charts|DataVisualization|Graphs|Labs|Location|Multimedia|Pdf|"
+    r"Quick3D|QuickControls2|QuickDialogs2|QuickEffects|QuickLayouts|QuickParticles|"
+    r"QuickShapes|QuickTemplates2|QuickTest|QuickTimeline|QuickVectorImage|RemoteObjects|"
+    r"Scxml|Sensors|SerialPort|ShaderTools|SpatialAudio|Sql|StateMachine|Test|TextToSpeech|"
+    r"VirtualKeyboard|WebEngineQuick|WebView|WebSockets|WebChannelQuick|PositioningQuick|"
+    r"QmlDesignSupport|QmlLocalStorage|QmlXmlListModel|QmlNetwork|QmlCore|Concurrent)"
+)
+
+
+def _wanted(entry) -> bool:
+    dest = entry[0].replace("\\", "/")
+    if "/qml/" in dest or dest.startswith("PySide6/Qt/qml"):
+        return False  # QML dosyaları: Pyvot Qt Widgets kullanıyor
+    return not _UNUSED_QT.match(dest.rsplit("/", 1)[-1])
+
+
+a.datas = [entry for entry in a.datas if _keep(entry) and _wanted(entry)]
+a.binaries = [entry for entry in a.binaries if _wanted(entry)]
 pyz = PYZ(a.pure)
 
 exe = EXE(

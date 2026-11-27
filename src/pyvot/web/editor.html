@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Pyvot editor</title>
+  <style>
+    html, body, #editor { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+    body { background: var(--bg, #ffffff); }
+    #empty {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-family: system-ui, "Segoe UI", sans-serif; color: #8b8f96; font-size: 14px;
+    }
+  </style>
+  <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+  <script src="monaco/vs/loader.js"></script>
+</head>
+<body>
+  <div id="editor"></div>
+  <div id="empty"></div>
+  <script src="editor.js"></script>
+</body>
+</html>

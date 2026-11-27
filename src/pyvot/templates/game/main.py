@@ -13,7 +13,9 @@ TEXT_COLOR = (230, 230, 230)
 
 
 def new_star() -> pygame.Rect:
-    return pygame.Rect(random.randint(20, WIDTH - 40), random.randint(60, HEIGHT - 40), 20, 20)
+    x = random.randint(20, WIDTH - 40)
+    y = random.randint(60, HEIGHT - 40)
+    return pygame.Rect(x, y, 20, 20)
 
 
 def run(max_frames: int | None = None) -> int:
@@ -32,9 +34,8 @@ def run(max_frames: int | None = None) -> int:
 
     while running:
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            escape = event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE
+            if event.type == pygame.QUIT or escape:
                 running = False
 
         keys = pygame.key.get_pressed()
@@ -49,7 +50,8 @@ def run(max_frames: int | None = None) -> int:
         screen.fill(BACKGROUND)
         pygame.draw.rect(screen, STAR_COLOR, star, border_radius=10)
         pygame.draw.rect(screen, PLAYER_COLOR, player, border_radius=6)
-        screen.blit(font.render("{{t:game_score}}".format(score=score), True, TEXT_COLOR), (12, 12))
+        score_text = font.render(f"{{t:game_score}}", True, TEXT_COLOR)
+        screen.blit(score_text, (12, 12))
         hint = font.render("{{t:game_hint}}", True, TEXT_COLOR)
         screen.blit(hint, (12, HEIGHT - hint.get_height() - 12))
         pygame.display.flip()

@@ -44,7 +44,16 @@ from PySide6.QtWidgets import (
 from pyvot.core import files, launch, ruff, terminal, vscode
 from pyvot.core.projects import inspect
 from pyvot.i18n import tr
-from pyvot.ui.code_editor import MonacoEditor, monaco_available
+try:  # QtWebEngine yoksa proje penceresi editörsüz açılır, çökmez.
+    from pyvot.ui.code_editor import MonacoEditor, monaco_available
+
+    WEBENGINE_ERROR = ""
+except ImportError as exc:  # pragma: no cover - paket eksikse
+    MonacoEditor = None  # type: ignore[assignment,misc]
+    WEBENGINE_ERROR = str(exc)
+
+    def monaco_available() -> bool:
+        return False
 from pyvot.ui.context import AppContext
 from pyvot.ui.preview import PreviewBase, UnsupportedPreview, preview_for
 from pyvot.ui.run_console import RunConsole
@@ -198,11 +207,16 @@ class WorkspaceWindow(QMainWindow):
         self.tab_bar.setDocumentMode(True)
         self.stack = QStackedWidget()
         self.editor: MonacoEditor | None = None
-        if monaco_available():
+        if MonacoEditor is not None and monaco_available():
             self.editor = MonacoEditor()
             self.stack.addWidget(self.editor)
         else:
-            self.stack.addWidget(QLabel(tr("workspace.no_monaco"), alignment=Qt.AlignmentFlag.AlignCenter))
+            text = tr("workspace.no_monaco")
+            if WEBENGINE_ERROR:
+                text += f"\n\n({WEBENGINE_ERROR})"
+            missing = QLabel(text, alignment=Qt.AlignmentFlag.AlignCenter)
+            missing.setWordWrap(True)
+            self.stack.addWidget(missing)
         self.welcome = QLabel(tr("workspace.welcome"), alignment=Qt.AlignmentFlag.AlignCenter)
         self.welcome.setWordWrap(True)
         self.stack.addWidget(self.welcome)

@@ -26,6 +26,42 @@ def _windows_setup() -> None:
             pass
 
 
+def _install_error_log() -> None:
+    """Beklenmeyen hataları %LOCALAPPDATA%\\Pyvot\\pyvot.log'a yazar ve gösterir.
+
+    Paketlenmiş uygulamanın konsolu yok; aksi halde hatalar kaybolur ya da
+    uygulama sessizce takılmış gibi görünür.
+    """
+    import traceback
+    from datetime import datetime
+
+    from pyvot.core.paths import data_dir
+
+    log_file = data_dir() / "pyvot.log"
+    previous = sys.excepthook
+
+    def hook(exc_type, exc, tb) -> None:  # noqa: ANN001
+        text = "".join(traceback.format_exception(exc_type, exc, tb))
+        try:
+            with open(log_file, "a", encoding="utf-8") as handle:
+                handle.write(f"--- {datetime.now().isoformat(timespec='seconds')} Pyvot {__version__}\n{text}\n")
+        except OSError:
+            pass
+        try:
+            from PySide6.QtWidgets import QApplication, QMessageBox
+
+            if QApplication.instance() is not None and "--self-test" not in sys.argv:
+                from pyvot.i18n import tr
+
+                QMessageBox.critical(None, APP_NAME, tr("app.unexpected_error", path=str(log_file), error=str(exc)))
+        except Exception:  # noqa: BLE001
+            pass
+        if previous is not None and sys.stderr is not None:
+            previous(exc_type, exc, tb)
+
+    sys.excepthook = hook
+
+
 def _icon_path() -> Path:
     base = Path(getattr(sys, "_MEIPASS", Path(__file__).parent.parent))
     for candidate in (base / "pyvot" / "assets" / "pyvot.svg", Path(__file__).parent / "assets" / "pyvot.svg"):
@@ -36,6 +72,7 @@ def _icon_path() -> Path:
 
 def main() -> int:
     _windows_setup()
+    _install_error_log()
 
     from PySide6.QtCore import QCoreApplication, QLocale, Qt
     from PySide6.QtGui import QIcon
@@ -104,7 +141,14 @@ def _self_test(app, ctx) -> int:  # noqa: ANN001
     note(f"uv: {uvtool.find_uv()}")
     note(f"ruff: {ruff.find_ruff()}")
     note("opening workspace")
-    window = ctx.open_workspace(project)
+    try:
+        window = ctx.open_workspace(project)
+    except Exception:  # noqa: BLE001 - raporla ve çık
+        import traceback
+
+        note(traceback.format_exc())
+        note("FAILED")
+        os._exit(1)
     note("workspace opened")
     editor = getattr(window, "editor", None)
 

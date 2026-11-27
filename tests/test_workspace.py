@@ -9,10 +9,20 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip("PySide6.QtWebEngineWidgets")
+import os  # noqa: E402
+
+# CI'da bunlar eksikse test atlanmaz, başarısız olur: v0.3.0'ın ilk derlemesinde
+# QtWebEngine paketi eksikti ve testler sessizce atlandığı için fark edilmedi.
+_IN_CI = bool(os.environ.get("CI"))
+if _IN_CI:
+    import PySide6.QtWebEngineWidgets  # noqa: E402, F401
+else:
+    pytest.importorskip("PySide6.QtWebEngineWidgets")
 
 from pyvot.ui.code_editor import monaco_available  # noqa: E402
 
+if _IN_CI:
+    assert monaco_available(), "Monaco yok: CI'da scripts/fetch_monaco.py çalışmalı"
 pytestmark = pytest.mark.skipif(not monaco_available(), reason="Monaco yok (scripts/fetch_monaco.py)")
 
 

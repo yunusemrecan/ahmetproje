@@ -381,6 +381,7 @@ TR: dict[str, str] = {
     "preview.not_text_binary": "\"{name}\" bir metin dosyası değil.",
     "preview.not_text_large": "\"{name}\" editörde açılamayacak kadar büyük (5 MB'tan büyük).",
     "preview.not_text_unreadable": "\"{name}\" okunamadı.",
+    "app.unexpected_error": "Beklenmeyen bir hata oluştu:\n{error}\n\nAyrıntılar şu dosyaya yazıldı:\n{path}",
 }
 
 EN: dict[str, str] = {
@@ -746,6 +747,7 @@ EN: dict[str, str] = {
     "preview.not_text_binary": "\"{name}\" is not a text file.",
     "preview.not_text_large": "\"{name}\" is too large to open in the editor (over 5 MB).",
     "preview.not_text_unreadable": "\"{name}\" could not be read.",
+    "app.unexpected_error": "An unexpected error occurred:\n{error}\n\nDetails were written to:\n{path}",
 }
 
 LANGUAGES = {"tr": TR, "en": EN}

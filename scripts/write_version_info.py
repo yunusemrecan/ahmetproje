@@ -6,6 +6,7 @@ Sürüm src/pyvot/__init__.py içinden okunur; tek kaynak orasıdır.
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -20,7 +21,15 @@ def read_version() -> str:
     return match.group(1)
 
 
+def _utf8_output() -> None:
+    # Windows konsolunda Türkçe karakterler (İ, ş...) yazılabilsin.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main() -> None:
+    _utf8_output()
     version = read_version()
     numbers = [int(n) for n in re.findall(r"\d+", version)[:3]]
     numbers += [0] * (4 - len(numbers))

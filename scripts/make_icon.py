@@ -33,7 +33,15 @@ def render_png(renderer: QSvgRenderer, size: int) -> bytes:
     return bytes(data.data())
 
 
+def _utf8_output() -> None:
+    # Windows konsolunda Türkçe karakterler (İ, ş...) yazılabilsin.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main() -> int:
+    _utf8_output()
     app = QGuiApplication.instance() or QGuiApplication(sys.argv)  # noqa: F841
     renderer = QSvgRenderer(str(SVG))
     if not renderer.isValid():

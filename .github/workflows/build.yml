@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+env:
+  # Windows'ta Python çıktısı cp1252 olur ve Türkçe karakterlerde çöker.
+  PYTHONUTF8: "1"
+
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true

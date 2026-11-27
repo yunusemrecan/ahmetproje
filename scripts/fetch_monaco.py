@@ -25,7 +25,15 @@ TARGET = ROOT / "src" / "pyvot" / "web" / "monaco"
 STAMP = TARGET / "VERSION"
 
 
+def _utf8_output() -> None:
+    # Windows konsolunda Türkçe karakterler (İ, ş...) yazılabilsin.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main() -> int:
+    _utf8_output()
     if STAMP.exists() and STAMP.read_text(encoding="utf-8").strip() == VERSION:
         print(f"Monaco {VERSION} zaten var: {TARGET}")
         return 0

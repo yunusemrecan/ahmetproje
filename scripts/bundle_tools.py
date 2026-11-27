@@ -12,7 +12,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def _utf8_output() -> None:
+    # Windows konsolunda Türkçe karakterler (İ, ş...) yazılabilsin.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main() -> int:
+    _utf8_output()
     import uv  # requirements-build.txt ile kurulur
     from ruff.__main__ import find_ruff_bin
 

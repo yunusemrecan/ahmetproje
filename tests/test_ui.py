@@ -57,7 +57,7 @@ def test_main_window_lists_pythons_and_packages(qapp, venv_python):
     _wait(qapp, lambda: ctx.installs and not ctx.discovering)
     assert window.pythons.table.rowCount() >= 1
 
-    window.sidebar.setCurrentRow(1)
+    window.show_page(window.packages)
     page = window.packages
     assert page.python and page.python.lower() == venv_python.lower()
     _wait(qapp, lambda: page.refresh_btn.isEnabled())
@@ -74,7 +74,7 @@ def test_install_through_packages_page(qapp, venv_python):
     ctx = AppContext(Settings(extra_pythons=[venv_python], last_python=venv_python))
     window = MainWindow(ctx)
     _wait(qapp, lambda: ctx.installs and not ctx.discovering)
-    window.sidebar.setCurrentRow(1)
+    window.show_page(window.packages)
     page = window.packages
     _wait(qapp, lambda: page.refresh_btn.isEnabled())
 
@@ -84,3 +84,54 @@ def test_install_through_packages_page(qapp, venv_python):
     assert page.table.item(0, 0).text() == "six"
     assert "✓" in page.log.toPlainText()
     window.close()
+
+
+def test_new_project_wizard_creates_project(qapp, tmp_path):
+    from pyvot.core.settings import Settings
+    from pyvot.ui.context import AppContext
+    from pyvot.ui.main_window import MainWindow
+    from pyvot.ui.new_project_wizard import PAGE_OPTIONS, PAGE_PROGRESS, NewProjectWizard
+
+    ctx = AppContext(Settings(extra_pythons=[sys.executable], projects_root=str(tmp_path)))
+    window = MainWindow(ctx)
+    _wait(qapp, lambda: ctx.installs and not ctx.discovering)
+
+    wizard = NewProjectWizard(ctx, window)
+    wizard.name_edit.setText("a/b")
+    assert not wizard.next_btn.isEnabled()  # geçersiz ad
+    wizard.name_edit.setText("Deneme Projesi")
+    assert wizard.next_btn.isEnabled()
+    wizard.go_next()  # şablon
+    wizard.template_list.setCurrentRow(list(__import__("pyvot.core.projects", fromlist=["x"]).TEMPLATES).index("cli"))
+    wizard.go_next()  # python
+    assert wizard.python_combo.count() >= 1
+    wizard.go_next()  # seçenekler
+    assert wizard.stack.currentIndex() == PAGE_OPTIONS
+    wizard.go_next()  # oluştur
+    assert wizard.stack.currentIndex() == PAGE_PROGRESS
+    _wait(qapp, lambda: not wizard.job.running, timeout_ms=180000)
+    target = tmp_path / "Deneme Projesi"
+    assert wizard.created == target, wizard.log.toPlainText()
+    assert (target / ".venv").is_dir() and (target / "main.py").is_file()
+
+    page = window.projects
+    page.refresh()
+    assert page.table.rowCount() == 1
+    assert page.table.item(0, 1).text() == "Deneme Projesi"
+    page.table.selectRow(0)
+    assert page.packages_btn.isEnabled()
+    page.show_packages()
+    assert window.stack.currentWidget() is window.packages
+    assert window.packages.python and ".venv" in window.packages.python
+    window.close()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Geri Dönüşüm Kutusu yalnızca Windows'ta denenir")
+def test_move_to_trash_on_windows(qapp, tmp_path):
+    from pyvot.ui.projects_page import move_to_trash
+
+    folder = tmp_path / "silinecek proje"
+    (folder / "src").mkdir(parents=True)
+    (folder / "src" / "main.py").write_text("print('x')", encoding="utf-8")
+    assert move_to_trash(folder)
+    assert not folder.exists()

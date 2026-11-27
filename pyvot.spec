@@ -26,7 +26,10 @@ EXCLUDES = [
 a = Analysis(
     [str(ROOT / "src" / "pyvot" / "__main__.py")],
     pathex=[str(ROOT / "src")],
-    datas=[(str(ROOT / "src" / "pyvot" / "assets"), "pyvot/assets")],
+    datas=[
+        (str(ROOT / "src" / "pyvot" / "assets"), "pyvot/assets"),
+        (str(ROOT / "src" / "pyvot" / "templates"), "pyvot/templates"),
+    ],
     hiddenimports=["PySide6.QtSvg"],
     excludes=EXCLUDES,
     noarchive=False,

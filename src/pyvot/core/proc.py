@@ -9,7 +9,8 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-from collections.abc import Sequence
+import threading
+from collections.abc import Callable, Sequence
 
 
 def creation_flags() -> int:
@@ -55,3 +56,47 @@ def run(
         stdin=subprocess.DEVNULL,
         creationflags=creation_flags(),
     )
+
+
+def stream(
+    cmd: Sequence[str],
+    log: Callable[[str], None],
+    *,
+    cwd: str | None = None,
+    cancel: threading.Event | None = None,
+) -> int:
+    """Komutu çalıştırır, çıktısını satır satır ``log``'a iletir; çıkış kodunu döndürür.
+
+    ``cancel`` ayarlanırsa süreç sonlandırılır ve -1 döner.
+    Komut bulunamazsa OSError yükseltir.
+    """
+    process = subprocess.Popen(
+        list(cmd),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        stdin=subprocess.DEVNULL,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=cwd,
+        env=child_env(),
+        creationflags=creation_flags(),
+    )
+    assert process.stdout is not None
+    watcher: threading.Thread | None = None
+    if cancel is not None:
+
+        def watch() -> None:
+            while process.poll() is None:
+                if cancel.wait(0.2):
+                    process.kill()
+                    return
+
+        watcher = threading.Thread(target=watch, daemon=True)
+        watcher.start()
+    for line in process.stdout:
+        log(line.rstrip("\r\n"))
+    code = process.wait()
+    if cancel is not None and cancel.is_set():
+        return -1
+    return code

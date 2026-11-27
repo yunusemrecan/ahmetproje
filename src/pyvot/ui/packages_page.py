@@ -184,6 +184,10 @@ class PackagesPage(QWidget):
             row = self.env_combo.count() - 1
             if wanted and same_path_key(install.executable) == same_path_key(wanted):
                 chosen = row
+        if chosen < 0 and wanted and os.path.isfile(wanted):
+            # Keşifte olmayan ama hâlâ var olan ortam (ör. proje .venv'i) seçili kalsın.
+            self.env_combo.addItem(tr("packages.project_env", path=wanted), wanted)
+            chosen = self.env_combo.count() - 1
         if chosen < 0:
             for row, install in enumerate(self.ctx.installs):
                 if install.first_on_path or install.is_default:
@@ -200,6 +204,9 @@ class PackagesPage(QWidget):
             if same_path_key(self.env_combo.itemData(row)) == same_path_key(executable):
                 self.env_combo.setCurrentIndex(row)
                 return
+        # Keşifte olmayan bir ortam (ör. bir projenin .venv'i): listeye geçici ekle.
+        self.env_combo.addItem(tr("packages.project_env", path=executable), executable)
+        self.env_combo.setCurrentIndex(self.env_combo.count() - 1)
 
     def _env_changed(self, row: int) -> None:
         executable = self.env_combo.itemData(row) if row >= 0 else None

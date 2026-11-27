@@ -7,7 +7,16 @@
 >
 > *This app's code was written by an AI (Anthropic's Claude), following a person's plain-language instructions.*
 
-## Şu an neler yapabiliyor? (v0.1)
+## Şu an neler yapabiliyor? (v0.2)
+
+**Projeler**
+- Yeni proje sihirbazı: ad ve konum (varsayılan `C:\PyvotProjects`) → şablon → Python sürümü → seçenekler.
+- Şablonlar: **Boş proje**, **Komut satırı aracı**, **Veri analizi** (pandas, matplotlib, Jupyter defteri).
+- Her projede `pyproject.toml` + `uv.lock` + `.venv`, `.gitignore`, `README.md`, isteğe bağlı Git deposu.
+- VS Code dosyaları: doğru Python otomatik seçilir, **F5** ile çalışır (`.vscode/settings.json`, `launch.json`, `tasks.json`, `extensions.json`).
+- Proje listesi: sabitleme, arama; **VS Code'da aç**, **Klasörü aç**, **Terminalde aç** (sanal ortam etkin), **Paketleri göster**.
+- **Listeden çıkar** (dosyalara dokunmaz) ya da **Çöp kutusuna taşı** (geri alınabilir).
+- Var olan klasörü ekleme: `.venv`, `pyproject.toml`, `requirements.txt`, `.git` algılanır; eksikler tamamlanır. Var olan dosyaların üzerine asla yazılmaz.
 
 **Python sürümleri**
 - Bilgisayardaki tüm Python kurulumlarını otomatik bulur. Arandığı yerler:
@@ -29,7 +38,7 @@
 **Genel**
 - Arka planda [uv](https://github.com/astral-sh/uv) kullanır ve uv uygulamanın içinde gelir. İsterseniz Ayarlar'dan pip'e geçebilirsiniz.
 - Türkçe ve İngilizce arayüz; açık, koyu ya da sistemle aynı tema.
-- Kısayollar: **Ctrl+1 / 2 / 3** ile sayfalar arasında geçiş.
+- Kısayollar: **Ctrl+1 / 2 / 3 / 4** ile sayfalar arasında geçiş.
 
 ## Kurulum
 
@@ -48,7 +57,9 @@ Ayarlar `%LOCALAPPDATA%\Pyvot\settings.json` dosyasında tutulur.
 | Sürüm | İçerik |
 |---|---|
 | **v0.1** ✅ | Python sürümlerini bulma, paket yönetimi, PyPI arama, Windows kurulum dosyası |
-| v0.2 | Projeler: yeni proje sihirbazı (şablonlar), otomatik `.venv`, VS Code dosyaları (`.vscode/settings.json`, `launch.json`, `tasks.json`), "VS Code'da Aç" |
+| **v0.2.0** ✅ | Projeler sayfası, yeni proje sihirbazı (Boş, Komut satırı, Veri analizi), VS Code dosyaları, terminal, var olan projeyi ekleme |
+| v0.2.1 | Proje ayrıntı paneli: bağımlılıklar, eşitleme, paket ekle/kaldır (`pyproject.toml`'a yazılır), bozuk `.venv`'i onarma, Python sürümünü değiştirme |
+| v0.2.2 | Yeni şablonlar: Web API (FastAPI), Web sitesi (Flask), Masaüstü (PySide6), Oyun (pygame) |
 | v0.3 | Gömülü editör (Monaco, VS Code'un editörü), dosya ağacı, önizleme, konsol, script çalıştırma, terminal |
 | v0.4 | Python sürümü kurma/kaldırma (uv ile), `requirements.txt` / `pyproject.toml` içe-dışa aktarma, conda desteği |
 | Sonra | Otomatik tamamlama ve hata gösterimi (Pyright/Ruff), Jupyter, uygulama içi güncelleme |
@@ -77,7 +88,9 @@ iscc /DAppVersion=0.1.0 installer\pyvot.iss   # Inno Setup 6 gerekli
 
 ```
 src/pyvot/
-  core/        Qt kullanmayan iş mantığı: Python keşfi, paketler (uv/pip), PyPI, ayarlar
+  core/        Qt kullanmayan iş mantığı: Python keşfi, paketler (uv/pip), PyPI, projeler,
+               VS Code dosyaları, terminal, ayarlar
+  templates/   proje şablonları ({{name}} ve {{t:anahtar}} yer tutucularıyla)
   ui/          PySide6 arayüzü: sayfalar, arka plan işleri, tema
   i18n.py      Türkçe ve İngilizce metinler
   assets/      simge

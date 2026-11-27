@@ -36,9 +36,17 @@ class _Task(QRunnable):
             result = self.fn(*self.args, **self.kwargs)
         except Exception as exc:  # noqa: BLE001 - arayüze iletilir
             exc.__pyvot_trace__ = traceback.format_exc()  # type: ignore[attr-defined]
-            self.signals.failed.emit(exc)
+            self._emit(self.signals.failed, exc)
         else:
-            self.signals.done.emit(result)
+            self._emit(self.signals.done, result)
+
+    @staticmethod
+    def _emit(signal, value: Any) -> None:  # noqa: ANN001
+        # Uygulama kapanırken pencere silinmiş olabilir; o zaman sonucu bırak.
+        try:
+            signal.emit(value)
+        except RuntimeError:
+            pass
 
 
 def run_in_background(

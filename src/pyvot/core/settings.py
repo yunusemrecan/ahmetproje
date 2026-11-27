@@ -20,6 +20,7 @@ class Settings:
     uv_path: str = ""
     extra_pythons: list[str] = field(default_factory=list)
     last_python: str = ""
+    projects_root: str = ""  # boşsa C:\\PyvotProjects
 
     @classmethod
     def file(cls) -> Path:

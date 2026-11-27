@@ -19,6 +19,7 @@ from pyvot import APP_NAME, __version__
 from pyvot.i18n import tr
 from pyvot.ui.context import AppContext
 from pyvot.ui.packages_page import PackagesPage
+from pyvot.ui.projects_page import ProjectsPage
 from pyvot.ui.pythons_page import PythonsPage
 from pyvot.ui.settings_page import SettingsPage
 from pyvot.ui.theme import apply_theme
@@ -33,6 +34,7 @@ class MainWindow(QMainWindow):
             self.setWindowIcon(icon)
         self.resize(1180, 760)
 
+        self.projects = ProjectsPage(ctx)
         self.pythons = PythonsPage(ctx)
         self.packages = PackagesPage(ctx)
         self.settings = SettingsPage(ctx)
@@ -44,6 +46,7 @@ class MainWindow(QMainWindow):
         self.sidebar.setIconSize(QSize(20, 20))
         style = self.style()
         for page, key, icon_id in (
+            (self.projects, "nav.projects", QStyle.StandardPixmap.SP_DirHomeIcon),
             (self.pythons, "nav.pythons", QStyle.StandardPixmap.SP_ComputerIcon),
             (self.packages, "nav.packages", QStyle.StandardPixmap.SP_DirIcon),
             (self.settings, "nav.settings", QStyle.StandardPixmap.SP_FileDialogDetailedView),
@@ -74,7 +77,7 @@ class MainWindow(QMainWindow):
 
         self.sidebar.currentRowChanged.connect(self._page_changed)
         ctx.busy_changed.connect(self.busy.setVisible)
-        ctx.show_packages_for.connect(lambda _exe: self.sidebar.setCurrentRow(1))
+        ctx.show_packages_for.connect(lambda _exe: self.show_page(self.packages))
         self.settings.theme_changed.connect(self._apply_theme)
         self.settings.backend_changed.connect(self.packages.settings_changed)
         self._follow_system_theme()
@@ -83,6 +86,9 @@ class MainWindow(QMainWindow):
         if not ctx.uv:
             self.statusBar().showMessage(tr("status.no_uv"), 15000)
         ctx.discover()
+
+    def show_page(self, page: QWidget) -> None:
+        self.sidebar.setCurrentRow(self.stack.indexOf(page))
 
     def _page_changed(self, row: int) -> None:
         self.stack.setCurrentIndex(row)
@@ -106,8 +112,9 @@ class MainWindow(QMainWindow):
         )
 
     def keyPressEvent(self, event) -> None:  # noqa: ANN001, N802
-        # Ctrl+1/2/3 ile sayfalar arasında geçiş.
-        if event.modifiers() & Qt.KeyboardModifier.ControlModifier and Qt.Key.Key_1 <= event.key() <= Qt.Key.Key_3:
+        # Ctrl+1..4 ile sayfalar arasında geçiş.
+        last = Qt.Key.Key_1 + self.stack.count() - 1
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier and Qt.Key.Key_1 <= event.key() <= last:
             self.sidebar.setCurrentRow(event.key() - Qt.Key.Key_1)
             return
         super().keyPressEvent(event)

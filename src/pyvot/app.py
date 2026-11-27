@@ -65,7 +65,12 @@ def main() -> int:
     ctx = AppContext(settings)
     window = MainWindow(ctx, icon)
     window.show()
-    return app.exec()
+    code = app.exec()
+    # Arka planda süren işlerin bitmesini kısa süre bekle.
+    from PySide6.QtCore import QThreadPool
+
+    QThreadPool.globalInstance().waitForDone(3000)
+    return code
 
 
 if __name__ == "__main__":

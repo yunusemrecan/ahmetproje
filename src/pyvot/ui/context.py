@@ -7,6 +7,7 @@ from PySide6.QtCore import QObject, Signal
 from pyvot.core import discovery, uvtool
 from pyvot.core.models import PythonInstall, same_path_key
 from pyvot.core.packages import PackageManager
+from pyvot.core.projects import ProjectStore
 from pyvot.core.pypi import PypiIndex
 from pyvot.core.settings import Settings
 from pyvot.ui.workers import run_in_background
@@ -26,6 +27,7 @@ class AppContext(QObject):
         self.uv: str | None = None
         self.uv_version: str | None = None
         self.pypi_index = PypiIndex()
+        self.projects = ProjectStore()
         self.discovering = False
         self._busy = 0
         self.refresh_uv()

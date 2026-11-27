@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from pyvot import __version__
 from pyvot.core.paths import data_dir
+from pyvot.core.projects import default_projects_root
 from pyvot.i18n import tr
 from pyvot.ui.context import AppContext
 from pyvot.ui.widgets import muted, page_title
@@ -55,6 +56,13 @@ class SettingsPage(QWidget):
         uv_row.addWidget(browse)
         self.uv_status = muted()
 
+        self.projects_root = QLineEdit(s.projects_root)
+        self.projects_root.setPlaceholderText(str(default_projects_root()))
+        browse_root = QPushButton(tr("action.browse"))
+        root_row = QHBoxLayout()
+        root_row.addWidget(self.projects_root, 1)
+        root_row.addWidget(browse_root)
+
         appearance = QGroupBox(tr("settings.appearance"))
         form = QFormLayout(appearance)
         form.addRow(tr("settings.language"), self.language)
@@ -66,6 +74,7 @@ class SettingsPage(QWidget):
         form2.addRow(tr("settings.backend"), self.backend)
         form2.addRow(tr("settings.uv_path"), uv_row)
         form2.addRow("", self.uv_status)
+        form2.addRow(tr("settings.projects_root"), root_row)
 
         about = QGroupBox(tr("settings.about"))
         about_layout = QVBoxLayout(about)
@@ -85,6 +94,8 @@ class SettingsPage(QWidget):
         self.backend.currentIndexChanged.connect(self._backend_changed)
         self.uv_path.editingFinished.connect(self._uv_path_changed)
         browse.clicked.connect(self._browse_uv)
+        self.projects_root.editingFinished.connect(self._projects_root_changed)
+        browse_root.clicked.connect(self._browse_projects_root)
         open_data.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(data_dir()))))
         self._update_uv_status()
 
@@ -121,6 +132,17 @@ class SettingsPage(QWidget):
         if path:
             self.uv_path.setText(path)
             self._uv_path_changed()
+
+    def _projects_root_changed(self) -> None:
+        self.ctx.settings.projects_root = self.projects_root.text().strip()
+        self._save()
+
+    def _browse_projects_root(self) -> None:
+        start = self.projects_root.text() or str(default_projects_root())
+        folder = QFileDialog.getExistingDirectory(self, tr("settings.projects_root"), start)
+        if folder:
+            self.projects_root.setText(folder)
+            self._projects_root_changed()
 
     def _update_uv_status(self) -> None:
         if self.ctx.uv:

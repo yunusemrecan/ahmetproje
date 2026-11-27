@@ -50,6 +50,7 @@ jobs:
         run: python scripts/fetch_monaco.py
 
       - name: Testler
+        timeout-minutes: 20
         run: python -m pytest -v
 
   windows:

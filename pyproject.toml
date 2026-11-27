@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff==0.17.6"]
+dev = ["pytest>=8", "pytest-timeout>=2.3", "ruff==0.17.6"]
 
 [project.gui-scripts]
 pyvot = "pyvot.app:main"
@@ -30,6 +30,10 @@ packages = ["src/pyvot"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Takılan bir test (ör. beklenmeyen bir pencere) tüm CI'ı kilitlemesin; nerede
+# takıldığı yazdırılır.
+timeout = 180
+timeout_method = "thread"
 markers = [
     "network: needs internet access (PyPI)",
 ]

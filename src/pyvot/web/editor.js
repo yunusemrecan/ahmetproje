@@ -93,7 +93,8 @@ window.pyvot = {
   setText(uri, text, markClean) {
     const model = models.get(uri);
     if (!model) return;
-    if (model.getValue() !== text) {
+    // Satır sonu farkı (CRLF/LF) değişiklik sayılmasın.
+    if (model.getValue(monaco.editor.EndOfLinePreference.LF) !== text.replace(/\r\n/g, "\n")) {
       model.pushEditOperations([], [{ range: model.getFullModelRange(), text }], () => null);
       model.pushStackElement();
     }

@@ -37,11 +37,15 @@ def _wait(qapp, condition, timeout_ms: int = 30000) -> None:
 
 
 def _editor_text(qapp, window, path: Path) -> str | None:
-    """Editördeki metin (uygulamanın kullandığı snapshot yoluyla)."""
+    """Editördeki metin (uygulamanın kullandığı snapshot yoluyla).
+
+    Windows'ta write_text CRLF yazar; editör de metni dosyanın satır sonuyla
+    verir. Karşılaştırma için LF'ye çevrilir.
+    """
     box: list = []
     window.editor.snapshot(path, lambda text, _version: box.append(text))
     _wait(qapp, lambda: box)
-    return box[0]
+    return box[0].replace("\r\n", "\n") if box[0] is not None else None
 
 
 @pytest.fixture
@@ -263,3 +267,17 @@ def test_external_change_is_detected_without_file_watcher(qapp, window, project)
     main = (project / "main.py").resolve()
     main.write_text("print('yoklama')\n", encoding="utf-8")
     _wait(qapp, lambda: _editor_text(qapp, window, main) == "print('yoklama')\n", timeout_ms=10000)
+
+
+def test_crlf_file_reload_and_save_keep_line_endings(qapp, window, project):
+    """Windows tarzı (CRLF) dosya: dışarıdan değişince yüklenir, kaydedince CRLF kalır."""
+    crlf = (project / "crlf.py").resolve()
+    crlf.write_bytes(b"a = 1\r\n")
+    window.open_file(crlf)
+    crlf.write_bytes(b"b = 2\r\n")
+    _wait(qapp, lambda: _editor_text(qapp, window, crlf) == "b = 2\n", timeout_ms=10000)
+    assert not window.tabs[str(crlf)].dirty
+    window.editor.set_text(crlf, "c = 3\n")
+    _wait(qapp, lambda: window.tabs[str(crlf)].dirty)
+    window.handle_command("save")
+    _wait(qapp, lambda: crlf.read_bytes() == b"c = 3\r\n")

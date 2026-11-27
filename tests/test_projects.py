@@ -21,6 +21,14 @@ def _turkish():
     i18n.set_language("tr")
 
 
+def _run_project(info: projects.ProjectInfo, *args: str) -> subprocess.CompletedProcess[str]:
+    """Projeyi VS Code'un çalıştırdığı gibi (UTF-8 kipi açık) çalıştırır."""
+    from pyvot.core import proc
+
+    env = proc.child_env(vscode.UTF8_ENV)
+    return proc.run([str(info.interpreter), "main.py", *args], cwd=str(info.path), env=env, timeout=120)
+
+
 def _new(tmp_path: Path, template: str = "empty", **kw) -> NewProject:
     defaults = dict(
         name="Benim Projem",
@@ -130,6 +138,9 @@ def test_vscode_files(tmp_path):
     assert {p.name for p in written} == {"settings.json", "launch.json", "tasks.json", "extensions.json"}
     launch = json.loads((tmp_path / ".vscode" / "launch.json").read_text(encoding="utf-8"))
     assert launch["configurations"][0]["args"] == ["a", "b"]
+    assert launch["configurations"][0]["env"] == {"PYTHONUTF8": "1"}
+    settings = json.loads((tmp_path / ".vscode" / "settings.json").read_text(encoding="utf-8"))
+    assert settings["terminal.integrated.env.windows"] == {"PYTHONUTF8": "1"}
     assert launch["configurations"][0]["type"] == "debugpy"
     ext = json.loads((tmp_path / ".vscode" / "extensions.json").read_text(encoding="utf-8"))
     assert ext["recommendations"][0] == "ms-python.python" and "ms-toolsai.jupyter" in ext["recommendations"]
@@ -254,7 +265,7 @@ def test_create_with_venv_and_run(tmp_path, uv_bin, template, args, expected):
     target = projects.create(_new(tmp_path, template, create_venv=True, git=True), uv_bin, lambda _l: None, language="tr")
     info = projects.inspect(target)
     assert info.venv_state == "ok" and info.has_lock and info.interpreter is not None
-    result = subprocess.run([str(info.interpreter), "main.py", *args], cwd=target, capture_output=True, text=True, encoding="utf-8")
+    result = _run_project(info, *args)
     assert result.returncode == 0, result.stderr
     assert expected in result.stdout
     if template == "cli":
@@ -266,7 +277,7 @@ def test_create_data_project_installs_and_runs(tmp_path, uv_bin):
     target = projects.create(_new(tmp_path, "data", create_venv=True), uv_bin, lambda _l: None, language="en")
     info = projects.inspect(target)
     assert {d.split(">=")[0] for d in info.dependencies} == {"pandas", "matplotlib", "ipykernel"}
-    result = subprocess.run([str(info.interpreter), "main.py"], cwd=target, capture_output=True, text=True, encoding="utf-8")
+    result = _run_project(info)
     assert result.returncode == 0, result.stderr
     assert (target / "chart.png").stat().st_size > 1000
 

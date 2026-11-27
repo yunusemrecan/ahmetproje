@@ -13,6 +13,9 @@ from pathlib import Path
 IS_WINDOWS = sys.platform == "win32"
 DOWNLOAD_URL = "https://code.visualstudio.com/download"
 BASE_EXTENSIONS = ("ms-python.python", "ms-python.debugpy", "charliermarsh.ruff")
+# Windows'ta Python, çıktısı konsola değil başka yere gidince cp1252 kullanır ve
+# Türkçe karakterlerde çöker. UTF-8 kipi bunu önler.
+UTF8_ENV = {"PYTHONUTF8": "1"}
 
 
 def interpreter_setting(windows: bool = IS_WINDOWS) -> str:
@@ -25,6 +28,7 @@ def settings_json(windows: bool = IS_WINDOWS) -> dict:
         "python.defaultInterpreterPath": interpreter_setting(windows),
         "python.terminal.activateEnvironment": True,
         "files.exclude": {"**/__pycache__": True, "**/.ruff_cache": True},
+        "terminal.integrated.env.windows": dict(UTF8_ENV),
         "[python]": {"editor.defaultFormatter": "charliermarsh.ruff"},
     }
 
@@ -37,6 +41,7 @@ def launch_json(args: Iterable[str] = ()) -> dict:
         "program": "${workspaceFolder}/main.py",
         "cwd": "${workspaceFolder}",
         "console": "integratedTerminal",
+        "env": dict(UTF8_ENV),
     }
     args = list(args)
     if args:
@@ -47,6 +52,7 @@ def launch_json(args: Iterable[str] = ()) -> dict:
         "request": "launch",
         "program": "${file}",
         "console": "integratedTerminal",
+        "env": dict(UTF8_ENV),
     }
     return {"version": "0.2.0", "configurations": [config, current]}
 
@@ -60,6 +66,7 @@ def tasks_json() -> dict:
                 "type": "shell",
                 "command": "${command:python.interpreterPath}",
                 "args": ["main.py"],
+                "options": {"env": dict(UTF8_ENV)},
                 "group": {"kind": "build", "isDefault": True},
                 "problemMatcher": [],
             }

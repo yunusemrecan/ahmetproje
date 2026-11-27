@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import threading
@@ -118,7 +119,9 @@ def test_template_files_render(tmp_path, template, language):
     assert {"main.py", ".gitignore", "README.md"} <= names
     for path in written:
         text = path.read_text(encoding="utf-8")
-        assert "{{" not in text, path
+        # Pyvot'un kendi yer tutucuları kalmamalı (Jinja'nın {{ title }} gibi etiketleri kalabilir).
+        leftover = re.findall(r"\{\{\s*(?:t:[a-z_]+|name|package|python|template)\s*\}\}", text)
+        assert not leftover, (path, leftover)
         if path.suffix == ".py":
             compile(text, str(path), "exec")
         if path.suffix == ".ipynb":
@@ -296,3 +299,84 @@ def test_setup_existing_plain_folder(tmp_path, uv_bin):
     projects.setup_existing(tmp_path, sys.executable, uv_bin, lambda _l: None, create_venv=True, vscode_files=False)
     info = projects.inspect(tmp_path)
     assert info.venv_state == "ok" and not info.has_vscode
+
+
+# --- v0.2.2 şablonları ---------------------------------------------------------------------
+
+
+def test_templates_are_grouped():
+    groups = {t.group for t in projects.TEMPLATES.values()}
+    assert groups <= set(projects.TEMPLATE_GROUPS)
+    for group in projects.TEMPLATE_GROUPS:
+        assert f"template_group.{group}" in i18n.TR and f"template_group.{group}" in i18n.EN
+
+
+def test_flask_template_keeps_jinja_tags(tmp_path):
+    project = _new(tmp_path, "flask")
+    project.target.mkdir()
+    projects.write_template_files(project, "en")
+    html = (project.target / "templates" / "index.html").read_text(encoding="utf-8")
+    assert "{{ title }}" in html and "{{ note }}" in html and "url_for('add')" in html
+    assert 'lang="en"' in html and "No notes yet." in html
+
+
+def test_pytest_templates_configure_pythonpath(tmp_path):
+    data = tomllib.loads(projects.pyproject_text(_new(tmp_path, "fastapi")))
+    assert data["tool"]["pytest"]["ini_options"]["pythonpath"] == ["."]
+    assert "tool" not in tomllib.loads(projects.pyproject_text(_new(tmp_path, "empty")))
+
+
+@pytest.mark.parametrize(
+    ("run", "module", "uri"),
+    [("fastapi", "uvicorn", "%s/docs"), ("flask", "flask", "%s")],
+)
+def test_web_launch_configs_open_browser(run, module, uri):
+    import re
+
+    config = vscode.launch_json((), run)["configurations"][0]
+    assert config["module"] == module and config["env"] == {"PYTHONUTF8": "1"}
+    action = config["serverReadyAction"]
+    assert action["uriFormat"] == uri and action["action"] == "openExternally"
+    banner = {
+        "fastapi": "INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)",
+        "flask": " * Running on http://127.0.0.1:5000",
+    }[run]
+    assert re.search(action["pattern"], banner).group(1).startswith("http://127.0.0.1:")
+
+
+def test_settings_enable_pytest_only_when_asked():
+    assert vscode.settings_json(tests=True)["python.testing.pytestEnabled"] is True
+    assert "python.testing.pytestEnabled" not in vscode.settings_json()
+
+
+GUI_ENV = {"QT_QPA_PLATFORM": "offscreen", "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy"}
+
+
+@pytest.mark.network
+@pytest.mark.parametrize(
+    ("template", "args", "expected"),
+    [
+        ("fastapi", ["-m", "pytest", "-q", "-W", "error::DeprecationWarning"], "3 passed"),
+        ("flask", ["-m", "pytest", "-q"], "3 passed"),
+        (
+            "desktop",
+            [
+                "-c",
+                "import main; from PySide6.QtWidgets import QApplication; app = QApplication([]); "
+                "w = main.MainWindow(); w.entry.setText('Elma'); w.add_item(); print(w.count.text())",
+            ],
+            "1 öğe",
+        ),
+        ("game", ["-c", "import main; print('frames-ok', main.run(max_frames=30))"], "frames-ok 0"),
+    ],
+)
+def test_new_templates_install_and_run(tmp_path, uv_bin, template, args, expected):
+    from pyvot.core import proc
+
+    target = projects.create(_new(tmp_path, template, create_venv=True), uv_bin, lambda _l: None, language="tr")
+    info = projects.inspect(target)
+    assert info.venv_state == "ok"
+    env = proc.child_env({**vscode.UTF8_ENV, **GUI_ENV})
+    result = proc.run([str(info.interpreter), *args], cwd=str(target), env=env, timeout=600)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert expected in result.stdout

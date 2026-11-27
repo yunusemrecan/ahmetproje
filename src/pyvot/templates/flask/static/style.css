@@ -1,0 +1,64 @@
+:root {
+  --bg: #f6f7fb;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --accent: #3b82f6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181b;
+    --card: #1f2125;
+    --text: #e6e6e6;
+    --muted: #9ca3af;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+main {
+  max-width: 560px;
+  margin: 48px auto;
+  padding: 24px;
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 8%);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+form {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--muted);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+}
+
+button {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+
+li {
+  padding: 6px 0;
+}

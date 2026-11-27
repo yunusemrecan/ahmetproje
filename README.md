@@ -7,11 +7,15 @@
 >
 > *This app's code was written by an AI (Anthropic's Claude), following a person's plain-language instructions.*
 
-## Şu an neler yapabiliyor? (v0.2.1)
+## Şu an neler yapabiliyor? (v0.2.2)
 
 **Projeler**
 - Yeni proje sihirbazı: ad ve konum (varsayılan `C:\PyvotProjects`) → şablon → Python sürümü → seçenekler.
-- Şablonlar: **Boş proje**, **Komut satırı aracı**, **Veri analizi** (pandas, matplotlib, Jupyter defteri).
+- Şablonlar (gruplu):
+  - **Temel:** Boş proje, Komut satırı aracı
+  - **Veri:** Veri analizi (pandas, matplotlib, Jupyter defteri)
+  - **Web:** Web API (FastAPI), Web sitesi (Flask). F5 ile tarayıcı kendiliğinden açılır; örnek pytest testleri içerir.
+  - **Masaüstü ve oyun:** Masaüstü uygulaması (PySide6), Oyun (pygame-ce)
 - Her projede `pyproject.toml` + `uv.lock` + `.venv`, `.gitignore`, `README.md`, isteğe bağlı Git deposu.
 - VS Code dosyaları: doğru Python otomatik seçilir, **F5** ile çalışır (`.vscode/settings.json`, `launch.json`, `tasks.json`, `extensions.json`).
 - Proje listesi: sabitleme, arama; **VS Code'da aç**, **Klasörü aç**, **Terminalde aç** (sanal ortam etkin), **Paketleri göster**.
@@ -64,7 +68,7 @@ Ayarlar `%LOCALAPPDATA%\Pyvot\settings.json` dosyasında tutulur.
 | **v0.1** ✅ | Python sürümlerini bulma, paket yönetimi, PyPI arama, Windows kurulum dosyası |
 | **v0.2.0** ✅ | Projeler sayfası, yeni proje sihirbazı (Boş, Komut satırı, Veri analizi), VS Code dosyaları, terminal, var olan projeyi ekleme |
 | **v0.2.1** ✅ | Proje ayrıntı paneli: bağımlılıklar (ana/geliştirme), eşitleme, ekle/kaldır/güncelle, büyük sürüme yükseltme, ortamı onarma, Python sürümünü değiştirme, requirements.txt dönüştürme/dışa aktarma |
-| v0.2.2 | Yeni şablonlar: Web API (FastAPI), Web sitesi (Flask), Masaüstü (PySide6), Oyun (pygame) |
+| **v0.2.2** ✅ | Yeni şablonlar: Web API (FastAPI), Web sitesi (Flask), Masaüstü (PySide6), Oyun (pygame-ce); gruplu şablon listesi |
 | v0.3 | Gömülü editör (Monaco, VS Code'un editörü), dosya ağacı, önizleme, konsol, script çalıştırma, terminal |
 | v0.4 | Python sürümü kurma/kaldırma (uv ile), `requirements.txt` / `pyproject.toml` içe-dışa aktarma, conda desteği |
 | Sonra | Otomatik tamamlama ve hata gösterimi (Pyright/Ruff), Jupyter, uygulama içi güncelleme |

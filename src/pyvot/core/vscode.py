@@ -23,26 +23,54 @@ def interpreter_setting(windows: bool = IS_WINDOWS) -> str:
     return "${workspaceFolder}/" + rel
 
 
-def settings_json(windows: bool = IS_WINDOWS) -> dict:
-    return {
+def settings_json(windows: bool = IS_WINDOWS, tests: bool = False) -> dict:
+    settings: dict = {
         "python.defaultInterpreterPath": interpreter_setting(windows),
         "python.terminal.activateEnvironment": True,
-        "files.exclude": {"**/__pycache__": True, "**/.ruff_cache": True},
+        "files.exclude": {"**/__pycache__": True, "**/.ruff_cache": True, "**/.pytest_cache": True},
         "terminal.integrated.env.windows": dict(UTF8_ENV),
         "[python]": {"editor.defaultFormatter": "charliermarsh.ruff"},
     }
+    if tests:
+        # VS Code'un Test panelinde pytest testleri görünsün.
+        settings["python.testing.pytestEnabled"] = True
+        settings["python.testing.unittestEnabled"] = False
+        settings["python.testing.pytestArgs"] = ["tests"]
+    return settings
 
 
-def launch_json(args: Iterable[str] = ()) -> dict:
-    config: dict = {
-        "name": "main.py",
+def _open_browser(pattern: str, uri: str = "%s") -> dict:
+    """Sunucu terminale adresini yazınca tarayıcıyı açar."""
+    return {"pattern": pattern, "uriFormat": uri, "action": "openExternally"}
+
+
+def launch_json(args: Iterable[str] = (), run: str = "script") -> dict:
+    base: dict = {
         "type": "debugpy",
         "request": "launch",
-        "program": "${workspaceFolder}/main.py",
         "cwd": "${workspaceFolder}",
         "console": "integratedTerminal",
         "env": dict(UTF8_ENV),
     }
+    if run == "fastapi":
+        config = {
+            "name": "FastAPI (uvicorn)",
+            **base,
+            "module": "uvicorn",
+            "args": ["main:app", "--reload"],
+            "serverReadyAction": _open_browser(r"Uvicorn running on (https?://\S+)", "%s/docs"),
+        }
+    elif run == "flask":
+        config = {
+            "name": "Flask",
+            **base,
+            "module": "flask",
+            "args": ["--app", "main", "run", "--debug", "--no-debugger"],
+            "jinja": True,
+            "serverReadyAction": _open_browser(r"Running on (https?://\S+)"),
+        }
+    else:
+        config = {"name": "main.py", **base, "program": "${workspaceFolder}/main.py"}
     args = list(args)
     if args:
         config["args"] = args
@@ -78,13 +106,20 @@ def extensions_json(extra: Iterable[str] = ()) -> dict:
     return {"recommendations": list(dict.fromkeys([*BASE_EXTENSIONS, *extra]))}
 
 
-def write_files(project: Path, launch_args: Iterable[str] = (), extensions: Iterable[str] = ()) -> list[Path]:
+def write_files(
+    project: Path,
+    launch_args: Iterable[str] = (),
+    extensions: Iterable[str] = (),
+    *,
+    run: str = "script",
+    tests: bool = False,
+) -> list[Path]:
     """Eksik .vscode dosyalarını yazar; var olanlara dokunmaz. Yazılanları döndürür."""
     folder = project / ".vscode"
     folder.mkdir(parents=True, exist_ok=True)
     files = {
-        "settings.json": settings_json(),
-        "launch.json": launch_json(launch_args),
+        "settings.json": settings_json(tests=tests),
+        "launch.json": launch_json(launch_args, run),
         "tasks.json": tasks_json(),
         "extensions.json": extensions_json(extensions),
     }

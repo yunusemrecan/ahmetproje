@@ -300,6 +300,21 @@ TR: dict[str, str] = {
     "deps.confirm_overwrite_requirements": "requirements.txt zaten var. Üzerine yazılsın mı?",
     "project.err_empty_package": "Bir paket adı yazın.",
     "projects.ask_repair": "\"{name}\" projesinin sanal ortamı bozuk. VS Code'da açmadan önce onarılsın mı?",
+    "template.fastapi": "Web API (FastAPI)",
+    "template.fastapi_desc": "Yapılacaklar listesi API'si; F5 ile tarayıcıda deneme sayfası (/docs) açılır. Örnek testler içerir.",
+    "template.flask": "Web sitesi (Flask)",
+    "template.flask_desc": "Formdan not eklenen tek sayfalık site; F5 ile tarayıcıda açılır. Örnek testler içerir.",
+    "template.desktop": "Masaüstü uygulaması (PySide6)",
+    "template.desktop_desc": "Metin kutusu, düğme ve listeden oluşan bir pencere.",
+    "template.game": "Oyun (pygame)",
+    "template.game_desc": "Ok tuşlarıyla yıldız toplanan basit bir oyun; görsel dosya gerekmez.",
+    "template_group.basic": "Temel",
+    "template_group.data": "Veri",
+    "template_group.web": "Web",
+    "template_group.desktop": "Masaüstü ve oyun",
+    "wizard.template_dev_packages": "Geliştirme paketleri: {packages}",
+    "wizard.template_size": "İndirme: yaklaşık {size} MB",
+    "project.step_dev_packages": "▶ Geliştirme paketleri kuruluyor: {packages}",
 }
 
 EN: dict[str, str] = {
@@ -585,6 +600,21 @@ EN: dict[str, str] = {
     "deps.confirm_overwrite_requirements": "requirements.txt already exists. Overwrite it?",
     "project.err_empty_package": "Enter a package name.",
     "projects.ask_repair": "The virtual environment of \"{name}\" is broken. Repair it before opening VS Code?",
+    "template.fastapi": "Web API (FastAPI)",
+    "template.fastapi_desc": "A to-do list API; F5 opens its try-it page (/docs) in the browser. Includes example tests.",
+    "template.flask": "Website (Flask)",
+    "template.flask_desc": "A one-page site where notes are added with a form; F5 opens it in the browser. Includes example tests.",
+    "template.desktop": "Desktop app (PySide6)",
+    "template.desktop_desc": "A window with a text box, a button and a list.",
+    "template.game": "Game (pygame)",
+    "template.game_desc": "A simple game where you collect stars with the arrow keys; no image files needed.",
+    "template_group.basic": "Basics",
+    "template_group.data": "Data",
+    "template_group.web": "Web",
+    "template_group.desktop": "Desktop and games",
+    "wizard.template_dev_packages": "Development packages: {packages}",
+    "wizard.template_size": "Download: about {size} MB",
+    "project.step_dev_packages": "▶ Installing development packages: {packages}",
 }
 
 LANGUAGES = {"tr": TR, "en": EN}

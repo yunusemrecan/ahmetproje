@@ -121,13 +121,26 @@ class NewProjectWizard(QDialog):
     def _template_page(self) -> QWidget:
         page = QWidget()
         self.template_list = QListWidget()
-        self.template_list.setSpacing(4)
-        for template in projects.TEMPLATES.values():
-            item = QListWidgetItem(f"{tr(template.title_key)}\n{tr(template.description_key)}")
-            item.setData(Qt.ItemDataRole.UserRole, template.id)
-            item.setToolTip(tr(template.description_key))
-            self.template_list.addItem(item)
-        self.template_list.setCurrentRow(0)
+        self.template_list.setSpacing(3)
+        heading_font = self.template_list.font()
+        heading_font.setBold(True)
+        first_row = -1
+        for group in projects.TEMPLATE_GROUPS:
+            members = [t for t in projects.TEMPLATES.values() if t.group == group]
+            if not members:
+                continue
+            heading = QListWidgetItem(tr(f"template_group.{group}"))
+            heading.setFont(heading_font)
+            heading.setFlags(Qt.ItemFlag.NoItemFlags)  # seçilemez başlık
+            self.template_list.addItem(heading)
+            for template in members:
+                item = QListWidgetItem(f"    {tr(template.title_key)}\n    {tr(template.description_key)}")
+                item.setData(Qt.ItemDataRole.UserRole, template.id)
+                item.setToolTip(tr(template.description_key))
+                self.template_list.addItem(item)
+                if first_row < 0:
+                    first_row = self.template_list.count() - 1
+        self.template_list.setCurrentRow(first_row)
         self.template_info = muted()
         self.template_list.currentRowChanged.connect(lambda _row: self._update_template_info())
 
@@ -252,15 +265,25 @@ class NewProjectWizard(QDialog):
 
     def selected_template(self) -> projects.Template:
         item = self.template_list.currentItem()
-        template_id = item.data(Qt.ItemDataRole.UserRole) if item else "empty"
-        return projects.TEMPLATES[template_id]
+        template_id = item.data(Qt.ItemDataRole.UserRole) if item else None
+        return projects.TEMPLATES.get(template_id or "empty", projects.TEMPLATES["empty"])
+
+    def select_template(self, template_id: str) -> None:
+        for row in range(self.template_list.count()):
+            if self.template_list.item(row).data(Qt.ItemDataRole.UserRole) == template_id:
+                self.template_list.setCurrentRow(row)
+                return
 
     def _update_template_info(self) -> None:
         template = self.selected_template()
-        text = tr(template.description_key)
+        lines = [tr(template.description_key)]
         if template.packages:
-            text += "\n" + tr("wizard.template_packages", packages=", ".join(template.packages))
-        self.template_info.setText(text)
+            lines.append(tr("wizard.template_packages", packages=", ".join(template.packages)))
+        if template.dev_packages:
+            lines.append(tr("wizard.template_dev_packages", packages=", ".join(template.dev_packages)))
+        if template.download_mb:
+            lines.append(tr("wizard.template_size", size=template.download_mb))
+        self.template_info.setText("\n".join(lines))
 
     def _prepare_python_page(self) -> None:
         self.python_combo.reload()
@@ -273,9 +296,9 @@ class NewProjectWizard(QDialog):
 
     def _prepare_options_page(self) -> None:
         template = self.selected_template()
-        packages = ", ".join(template.packages)
+        packages = ", ".join(template.packages + template.dev_packages)
         self.packages_check.setText(tr("wizard.opt_packages", packages=packages))
-        self.packages_check.setVisible(bool(template.packages))
+        self.packages_check.setVisible(bool(template.packages or template.dev_packages))
         has_git = projects.shutil.which("git") is not None
         self.git_check.setEnabled(has_git)
         self.git_check.setToolTip("" if has_git else tr("project.git_missing"))

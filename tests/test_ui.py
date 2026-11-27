@@ -102,7 +102,7 @@ def test_new_project_wizard_creates_project(qapp, tmp_path):
     wizard.name_edit.setText("Deneme Projesi")
     assert wizard.next_btn.isEnabled()
     wizard.go_next()  # şablon
-    wizard.template_list.setCurrentRow(list(__import__("pyvot.core.projects", fromlist=["x"]).TEMPLATES).index("cli"))
+    wizard.select_template("cli")
     wizard.go_next()  # python
     assert wizard.python_combo.count() >= 1
     wizard.go_next()  # seçenekler

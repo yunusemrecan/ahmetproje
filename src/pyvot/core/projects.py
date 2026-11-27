@@ -45,9 +45,14 @@ class Cancelled(ProjectError):
 @dataclass(frozen=True)
 class Template:
     id: str
+    group: str = "basic"  # basic | data | web | desktop (sihirbazdaki başlıklar)
     packages: tuple[str, ...] = ()
+    dev_packages: tuple[str, ...] = ()
     launch_args: tuple[str, ...] = ()
+    run: str = "script"  # F5 nasıl başlatır: script | fastapi | flask
     extensions: tuple[str, ...] = ()
+    pytest: bool = False  # tests/ klasörü ve pytest ayarları
+    download_mb: int = 0  # paketlerin yaklaşık indirme boyutu
 
     @property
     def folder(self) -> Path:
@@ -62,6 +67,8 @@ class Template:
         return f"template.{self.id}_desc"
 
 
+TEMPLATE_GROUPS = ("basic", "data", "web", "desktop")
+
 TEMPLATES: dict[str, Template] = {
     t.id: t
     for t in (
@@ -69,9 +76,32 @@ TEMPLATES: dict[str, Template] = {
         Template("cli", launch_args=("World", "--times", "2")),
         Template(
             "data",
+            group="data",
             packages=("pandas", "matplotlib", "ipykernel"),
             extensions=("ms-toolsai.jupyter",),
+            download_mb=70,
         ),
+        Template(
+            "fastapi",
+            group="web",
+            packages=("fastapi", "uvicorn"),
+            dev_packages=("pytest", "httpx2"),
+            run="fastapi",
+            pytest=True,
+            download_mb=15,
+        ),
+        Template(
+            "flask",
+            group="web",
+            packages=("flask",),
+            dev_packages=("pytest",),
+            run="flask",
+            pytest=True,
+            download_mb=5,
+        ),
+        Template("desktop", group="desktop", packages=("pyside6",), download_mb=200),
+        # pygame-ce: pygame'in daha aktif geliştirilen sürümü; kodda yine "import pygame".
+        Template("game", group="desktop", packages=("pygame-ce",), download_mb=15),
     )
 }
 
@@ -100,6 +130,29 @@ TEMPLATE_TEXT: dict[str, dict[str, str]] = {
         "chart_title": "Şehirlere göre toplam satış",
         "chart_saved": "Grafik kaydedildi:",
         "nb_intro": "Örnek veriyi inceleyen bir Jupyter defteri. Hücreleri sırayla çalıştırın (Shift+Enter).",
+        "tests_doc": "Örnek testler. VS Code'un Test panelinden ya da terminalde \"uv run pytest\" ile çalıştırın.",
+        "api_doc": "yapılacaklar listesi API'si",
+        "api_desc": "Görev ekleme, listeleme, tamamlama ve silme örneği.",
+        "api_memory_comment": "Örnek olduğu için görevler bellekte tutulur; sunucu yeniden başlayınca silinir.",
+        "api_hello": "Merhaba! API çalışıyor. Denemek için /docs sayfasını açın.",
+        "api_not_found": "Görev bulunamadı",
+        "api_sample_task": "Süt al",
+        "web_doc": "basit not defteri sitesi",
+        "web_memory_comment": "Örnek olduğu için notlar bellekte tutulur; sunucu yeniden başlayınca silinir.",
+        "html_lang": "tr",
+        "web_intro": "Bir not yazıp Ekle'ye basın.",
+        "web_placeholder": "Notunuz…",
+        "web_add": "Ekle",
+        "web_empty": "Henüz not yok.",
+        "web_sample": "Süt al",
+        "desktop_doc": "masaüstü uygulaması",
+        "desktop_placeholder": "Bir şey yazın…",
+        "desktop_add": "Ekle",
+        "desktop_count": "{count} öğe",
+        "game_doc": "yıldız toplama oyunu",
+        "game_run_doc": "Oyunu çalıştırır ve puanı döndürür. max_frames, testlerde oyunu kısa tutmak içindir.",
+        "game_score": "Puan: {score}",
+        "game_hint": "Ok tuşları: hareket · Esc: çıkış",
     },
     "en": {
         "hello": "Hello! {{name}} is running.",
@@ -124,6 +177,29 @@ TEMPLATE_TEXT: dict[str, dict[str, str]] = {
         "chart_title": "Total sales by city",
         "chart_saved": "Chart saved:",
         "nb_intro": "A Jupyter notebook exploring the sample data. Run the cells in order (Shift+Enter).",
+        "tests_doc": "Example tests. Run them from VS Code's Testing panel or with \"uv run pytest\" in a terminal.",
+        "api_doc": "to-do list API",
+        "api_desc": "An example of adding, listing, completing and deleting tasks.",
+        "api_memory_comment": "As an example, tasks are kept in memory and are lost when the server restarts.",
+        "api_hello": "Hello! The API is running. Open /docs to try it.",
+        "api_not_found": "Task not found",
+        "api_sample_task": "Buy milk",
+        "web_doc": "simple notebook website",
+        "web_memory_comment": "As an example, notes are kept in memory and are lost when the server restarts.",
+        "html_lang": "en",
+        "web_intro": "Write a note and press Add.",
+        "web_placeholder": "Your note…",
+        "web_add": "Add",
+        "web_empty": "No notes yet.",
+        "web_sample": "Buy milk",
+        "desktop_doc": "desktop application",
+        "desktop_placeholder": "Type something…",
+        "desktop_add": "Add",
+        "desktop_count": "{count} items",
+        "game_doc": "star collecting game",
+        "game_run_doc": "Runs the game and returns the score. max_frames keeps the game short in tests.",
+        "game_score": "Score: {score}",
+        "game_hint": "Arrow keys: move · Esc: quit",
     },
 }
 
@@ -390,6 +466,11 @@ def pyproject_text(project: NewProject) -> str:
         + ('readme = "README.md"\n' if project.readme else "")
         + f'requires-python = ">={major_minor}"\n'
         "dependencies = []\n"
+        + (
+            '\n[tool.pytest.ini_options]\npythonpath = ["."]\ntestpaths = ["tests"]\n'
+            if TEMPLATES[project.template].pytest
+            else ""
+        )
     )
 
 
@@ -465,20 +546,23 @@ def create(
 
     template = TEMPLATES[project.template]
     packages = list(template.packages if project.install_packages else ()) + list(project.extra_packages)
+    dev_packages = list(template.dev_packages if project.install_packages else ())
+    no_sync = [] if project.create_venv else ["--no-sync"]
 
     if project.create_venv:
         log(t("project.step_venv", version=project.python_version))
         run([uv, "sync", "--python", project.python])
-        if packages:
-            log(t("project.step_packages", packages=", ".join(packages)))
-            run([uv, "add", "--python", project.python, *packages])
-    elif packages:
-        log(t("project.step_packages_nosync", packages=", ".join(packages)))
-        run([uv, "add", "--no-sync", "--python", project.python, *packages])
+    if packages:
+        key = "project.step_packages" if project.create_venv else "project.step_packages_nosync"
+        log(t(key, packages=", ".join(packages)))
+        run([uv, "add", *no_sync, "--python", project.python, *packages])
+    if dev_packages:
+        log(t("project.step_dev_packages", packages=", ".join(dev_packages)))
+        run([uv, "add", "--dev", *no_sync, "--python", project.python, *dev_packages])
 
     if project.vscode_files:
         log(t("project.step_vscode"))
-        vscode.write_files(target, template.launch_args, template.extensions)
+        vscode.write_files(target, template.launch_args, template.extensions, run=template.run, tests=template.pytest)
 
     if project.git:
         git = shutil.which("git")
